@@ -39,9 +39,15 @@ def generate_puml(project_dir):
     uproject = find_uproject(base_path)
     project_name, engine_version = get_project_info(uproject) if uproject else ("Project", "Unknown")
 
-    output_file = f"{project_name}.puml"
+    output_file = os.path.join(base_path, f"{project_name}.puml")  # <-- apenas aqui foi corrigido
 
-    puml_content = ["@startuml", "skinparam classAttributeIconSize 0"]
+    puml_content = [
+    "@startuml",
+    "left to right direction",
+    "skinparam classAttributeIconSize 0",
+    "skinparam dpi 150",
+    "skinparam linetype ortho"
+    ]
     puml_content.append(f"title {project_name} - Unreal Engine {engine_version}")
 
     for root, _, files in os.walk(project_dir):

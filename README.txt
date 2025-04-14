@@ -19,4 +19,4 @@ https://plantuml.com/download
 Coloque o arquivo `plantuml.jar` na mesma pasta que `render.bat`.
 
 Compilar via Powershell
-& "C:\Users\Robson\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.9_qbz5n2kfra8p0\LocalCache\local-packages\Python39\Scripts\pyinstaller.exe" --onefile --noconsole --icon=unrealuml_icon.ico UnrealUML_Generator_fixed.py
+& "C:\Users\Robson\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.9_qbz5n2kfra8p0\LocalCache\local-packages\Python39\Scripts\pyinstaller.exe" --onefile --noconsole --icon=unrealuml_icon.ico UnrealUML_Generator.py
