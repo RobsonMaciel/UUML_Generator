@@ -37,6 +37,18 @@
 
 > ⚠️ Requires `plantuml.jar` in the same folder as the executable/script to generate the image.
 
+## 📥 How to Get `plantuml.jar`
+
+The UnrealUML Generator uses [PlantUML](https://plantuml.com/) to convert `.puml` files into visual diagrams.
+
+To obtain `plantuml.jar`:
+
+1. Visit the official PlantUML download page: https://plantuml.com/download
+2. Download the file `plantuml.jar`.
+3. Place the file in the same directory as the `UnrealUML_Generator.exe` or script.
+
+> 💡 PlantUML is an open-source tool developed by Arnaud Roques. All credits to the original authors. For more, visit: https://plantuml.com
+
 ## 🛠 Requirements
 
 - Python 3.9+ (if using script version)
@@ -83,8 +95,8 @@ pyinstaller --onefile --noconsole --clean --icon=unrealuml_icon.ico UnrealUML_Ge
 - Detecta automaticamente a pasta `Source` ao iniciar.
 - Extrai automaticamente:
   - Classes (baseadas em `UCLASS`)
-  - Métodos (baseados em `UFUNCTION`)
-  - Atributos (baseados em `UPROPERTY`)
+  - Métodos (baseadas em `UFUNCTION`)
+  - Atributos (baseadas em `UPROPERTY`)
 - Identifica o nome e a versão do projeto Unreal (.uproject).
 - Gera um arquivo `.puml` organizado em pacotes por tipo de classe:
   - `GameModes`, `Characters`, `Controllers`, `Components`, etc.
@@ -109,6 +121,18 @@ pyinstaller --onefile --noconsole --clean --icon=unrealuml_icon.ico UnrealUML_Ge
 5. O SVG será aberto automaticamente no navegador padrão.
 
 > ⚠️ Requer `plantuml.jar` na mesma pasta que o executável/script para gerar a imagem.
+
+## 📥 Como Baixar o `plantuml.jar`
+
+O UnrealUML Generator utiliza o [PlantUML](https://plantuml.com/) para converter arquivos `.puml` em diagramas visuais.
+
+Para obter o `plantuml.jar`:
+
+1. Acesse o site oficial do PlantUML: https://plantuml.com/download
+2. Baixe o arquivo `plantuml.jar`.
+3. Coloque o arquivo na mesma pasta do `UnrealUML_Generator.exe` ou script.
+
+> 💡 PlantUML é uma ferramenta open-source desenvolvida por Arnaud Roques. Todos os créditos aos autores originais. Mais em: https://plantuml.com
 
 ## 🛠 Requisitos
 
@@ -146,4 +170,3 @@ pyinstaller --onefile --noconsole --clean --icon=unrealuml_icon.ico UnrealUML_Ge
 
 ---
 **UnrealUML Generator** é uma ferramenta que facilita a compreensão estrutural de projetos Unreal Engine. Ideal para documentação, onboarding de equipes e visualização rápida da arquitetura geral do jogo.
-
