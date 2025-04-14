@@ -104,17 +104,31 @@ def generate_puml(project_dir):
     with open(output_file, "w", encoding="utf-8") as output:
         output.write("@startuml\n")
         output.write("top to bottom direction\n")
-        output.write("skinparam backgroundColor #1e1e1e\n")
-        output.write("skinparam classBackgroundColor #2d2d2d\n")
-        output.write("skinparam classBorderColor #c0c0c0\n")
-        output.write("skinparam classArrowColor #888888\n")
-        output.write("skinparam classFontColor white\n")
-        output.write("skinparam packageBorderColor #999999\n")
-        output.write("skinparam packageBackgroundColor #2c2c2c\n")
-        output.write("skinparam classAttributeIconSize 0\n")
-        output.write("skinparam dpi 150\n")
-        output.write("skinparam linetype ortho\n")
-        output.write("skinparam shadowing false\n")
+        output.write("skinparam backgroundColor #1e1e1e\n")  # Fundo escuro
+        output.write("skinparam classBackgroundColor #3c3c3c\n")  # Fundo das classes
+        output.write("skinparam classBorderColor #00bfff\n")  # Borda das classes (azul claro)
+        output.write("skinparam classFontColor #ffffff\n")  # Texto das classes (branco)
+        output.write("skinparam classAttributeFontColor #ffffff\n")  # Texto dos atributos em branco
+        output.write("skinparam classMethodFontColor #ffffff\n")  # Texto dos métodos em branco
+        output.write("skinparam classArrowColor #00bfff\n")  # Cor das setas (azul claro)
+        output.write("skinparam packageBorderColor #00bfff\n")  # Borda dos pacotes (azul claro)
+        output.write("skinparam packageBackgroundColor #2c2c2c\n")  # Fundo dos pacotes
+        output.write("skinparam packageFontColor #ffffff\n")  # Texto dos pacotes (branco)
+        output.write("skinparam classAttributeIconSize 0\n")  # Tamanho do ícone de atributos
+        output.write("skinparam dpi 150\n")  # Resolução do diagrama
+        output.write("skinparam linetype ortho\n")  # Linhas ortogonais
+        output.write("skinparam shadowing true\n")  # Com sombras
+        output.write("skinparam titleFontColor #ffffff\n")  # Título em branco
+        output.write("skinparam arrowFontColor #ffffff\n")  # Texto das setas em branco
+        output.write("skinparam stereotypeFontColor #ffffff\n")  # Texto dos estereótipos em branco
+        output.write("skinparam noteFontColor #ffffff\n")  # Texto das notas em branco
+        output.write("skinparam noteBackgroundColor #3c3c3c\n")  # Fundo das notas
+        output.write("skinparam noteBorderColor #00bfff\n")  # Borda das notas
+        output.write("skinparam shadowColor #000000\n")  # Cor da sombra
+        output.write("skinparam stereotypeABackgroundColor #3c3c3c\n")  # Fundo dos estereótipos A
+        output.write("skinparam stereotypeCBackgroundColor #3c3c3c\n")  # Fundo dos estereótipos C
+        output.write("skinparam stereotypeEBackgroundColor #3c3c3c\n")  # Fundo dos estereótipos E
+        output.write("skinparam stereotypeIBackgroundColor #3c3c3c\n")  # Fundo dos estereótipos I
         output.write(f"title {project_name} - Unreal Engine {engine_version}\n")
 
         for group, class_list in class_groups.items():
