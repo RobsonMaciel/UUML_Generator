@@ -1,4 +1,3 @@
-
 import os
 import re
 import sys
@@ -14,8 +13,8 @@ ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("blue")
 
 CLASS_REGEX = r"UCLASS\s*\(.*?\)\s*class\s+\w+_API\s+(\w+)\s*:\s*public\s+([\w:]+)"
-METHOD_REGEX = r"UFUNCTION\s*\(.*?\)\s*(?:virtual\s+)?(?:[\w:<>&*]+\s+)+(\w+)\s*\(.*?\)\s*;"
-ATTRIBUTE_REGEX = r"UPROPERTY\s*\(.*?\)\s*([\w:<>&*]+)\s+(\w+)\s*;"
+METHOD_REGEX = r"(?:UFUNCTION\s*\(.*?\)\s*)?(?:virtual\s+)?(?:[\w:<>&*]+\s+)+(\w+)\s*\(.*?\)\s*;"
+ATTRIBUTE_REGEX = r"(?:UPROPERTY\s*\(.*?\)\s*)?([\w:<>&*]+)\s+(\w+)\s*;"
 
 def parse_file(file_path):
     try:
@@ -82,7 +81,7 @@ def generate_puml(project_dir):
     base_path = os.path.abspath(os.path.join(project_dir, ".."))
     uproject = find_uproject(base_path)
     project_name, engine_version = get_project_info(uproject) if uproject else ("Project", "Unknown")
-    output_file = os.path.join(base_path, f"{project_name}_uml.puml")
+    output_file = os.path.join(base_path, f"{project_name}.puml")
 
     class_groups = defaultdict(list)
     relations = set()
@@ -105,11 +104,17 @@ def generate_puml(project_dir):
     with open(output_file, "w", encoding="utf-8") as output:
         output.write("@startuml\n")
         output.write("top to bottom direction\n")
+        output.write("skinparam backgroundColor #1e1e1e\n")
+        output.write("skinparam classBackgroundColor #2d2d2d\n")
+        output.write("skinparam classBorderColor #c0c0c0\n")
+        output.write("skinparam classArrowColor #888888\n")
+        output.write("skinparam classFontColor white\n")
+        output.write("skinparam packageBorderColor #999999\n")
+        output.write("skinparam packageBackgroundColor #2c2c2c\n")
         output.write("skinparam classAttributeIconSize 0\n")
         output.write("skinparam dpi 150\n")
         output.write("skinparam linetype ortho\n")
         output.write("skinparam shadowing false\n")
-        output.write("skinparam packageBorderColor Black\n")
         output.write(f"title {project_name} - Unreal Engine {engine_version}\n")
 
         for group, class_list in class_groups.items():
@@ -136,7 +141,7 @@ def render_svg(puml_path):
     subprocess.run(["java", "-jar", "plantuml.jar", "-tsvg", os.path.basename(puml_path)], cwd=folder, check=True)
 
     svg_path = os.path.join(folder, f"{name}.svg")
-    svg_target = os.path.join(folder, f"{name}_uml.svg")
+    svg_target = os.path.join(folder, f"{name}.svg")
 
     if os.path.exists(svg_path):
         os.replace(svg_path, svg_target)
