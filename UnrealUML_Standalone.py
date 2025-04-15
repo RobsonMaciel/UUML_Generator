@@ -13,18 +13,58 @@ ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("blue")
 
 CLASS_REGEX = r"UCLASS\s*\(.*?\)\s*class\s+\w+_API\s+(\w+)\s*:\s*public\s+([\w:]+)"
-METHOD_REGEX = r"(?:UFUNCTION\s*\(.*?\)\s*)?(?:virtual\s+)?(?:[\w:<>&*]+\s+)+(\w+)\s*\(.*?\)\s*;"
-ATTRIBUTE_REGEX = r"(?:UPROPERTY\s*\(.*?\)\s*)?([\w:<>&*]+)\s+(\w+)\s*;"
+METHOD_REGEX = r"(?:UFUNCTION\s*\(.*?\)\s*)?(?:(?:virtual|static|inline)\s+)*([\w:<>&*\s]+?)\s+(\w+)\s*\(([^)]*)\)\s*(?:const)?\s*(?:override)?\s*(?:final)?\s*;"
+ATTRIBUTE_REGEX = r"(?:UPROPERTY\s*\(.*?\)\s*)?([\w:<>&*]+(?:\s*<.*?>)?(?:\s*[*&])?)\s+(\w+)\s*(?:=\s*[^;]*)?;"
 
 def parse_file(file_path):
     try:
+        if not file_path.endswith(".h"):
+            return [], [], []
+
         with open(file_path, "r", encoding="utf-8") as file:
             content = file.read()
+
+        # Limpeza básica
+        content = re.sub(r"//.*", "", content)  # comentários de linha
+        content = re.sub(r"/\*.*?\*/", "", content, flags=re.DOTALL)  # comentários de bloco
+        content = re.sub(r"^\s*(public|protected|private)\s*:\s*", "", content, flags=re.MULTILINE)  # escopos
+
+        # Classes
         classes = re.findall(CLASS_REGEX, content)
-        methods = re.findall(METHOD_REGEX, content)
-        attributes = re.findall(ATTRIBUTE_REGEX, content)
+
+        methods = []
+        attributes = []
+
+        for cls, parent in classes:
+            class_name = cls.strip()
+
+            # Métodos (com tipo de retorno, nome, e parâmetros)
+            method_matches = re.findall(METHOD_REGEX, content)
+            for match in method_matches:
+                if isinstance(match, tuple) and len(match) == 3:
+                    return_type, method_name, params = match
+                    return_type = return_type.strip()
+                    method_name = method_name.strip()
+                    params = params.strip()
+
+                    # Se o método tiver mesmo nome da classe: é construtor (sem tipo de retorno)
+                    if method_name == class_name:
+                        methods.append(("", method_name, params))
+                    elif method_name:
+                        methods.append((return_type, method_name, params))
+
+            # Atributos (com tipo + nome, suportando ponteiros, templates e inicialização)
+            attribute_matches = re.findall(ATTRIBUTE_REGEX, content)
+            for match in attribute_matches:
+                if isinstance(match, tuple) and len(match) == 2:
+                    attr_type = match[0].strip()
+                    attr_name = match[1].strip()
+                    attributes.append((attr_type, attr_name))
+
         return classes, methods, attributes
-    except Exception:
+
+    except Exception as e:
+        print(f"Erro ao processar {file_path}: {e}")
         return [], [], []
 
 def find_uproject(base_path):
@@ -88,7 +128,7 @@ def generate_puml(project_dir):
 
     for root, _, files in os.walk(project_dir):
         for file in files:
-            if file.endswith(".h") or file.endswith(".cpp"):
+            if file.endswith(".h"):
                 file_path = os.path.join(root, file)
                 classes, methods, attributes = parse_file(file_path)
 
@@ -137,8 +177,8 @@ def generate_puml(project_dir):
                 output.write(f"  class {cls} extends {parent} {{\n")
                 for attr_type, attr_name in attributes:
                     output.write(f"    {attr_type.strip()} {attr_name}\n")
-                for method in methods:
-                    output.write(f"    {method}()\n")
+                for return_type, method_name, params in methods:
+                    output.write(f"    {return_type} {method_name}({params})\n")
                 output.write("  }\n")
             output.write("}\n")
 
