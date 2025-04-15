@@ -89,6 +89,12 @@ python -m PyInstaller --onefile --noconsole --icon=unrealuml_icon.ico UnrealUML_
 
 Developed by **Robson Franco Maciel** for Unreal Engine professionals, with clarity, documentation, and architecture visualization in mind.
 
+## 📄 License
+
+This project is licensed under the [MIT License](LICENSE).
+
+© 2025 Robson Franco Maciel. Please include proper attribution when using this tool.
+
 ---
 
 ## 📗 Versão em Português
@@ -159,6 +165,12 @@ python -m PyInstaller --onefile --noconsole --icon=unrealuml_icon.ico UnrealUML_
 ## 👤 Autor
 
 Desenvolvido por **Robson Franco Maciel** para profissionais de Unreal Engine que precisam visualizar, documentar e entender a arquitetura de grandes projetos de forma clara.
+
+## 📄 Licença
+
+Este projeto está licenciado sob a [Licença MIT](LICENSE).
+
+© 2025 Robson Franco Maciel. Por favor, inclua os devidos créditos ao utilizar esta ferramenta.
 
 ## 🖼️ Logo
 
