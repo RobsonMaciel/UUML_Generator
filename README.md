@@ -1,172 +1,151 @@
-# UnrealUML Generator
+# 🦩 Uuml – UML Generator for Unreal Engine
 
 ## 📘 English Version
 
-**UnrealUML Generator** is a cross-platform visual application written in Python with a `customtkinter` interface, designed to automatically generate UML diagrams from the source code of an Unreal Engine project.
+**Uuml** is a cross-platform visual application written in Python with a modern `customtkinter` GUI, designed to automatically generate UML diagrams from Unreal Engine C++ source code.
 
 ## 🔧 Features
 
-- Visual interface to select the project's `Source` folder.
-- Automatically detects the `Source` folder on startup.
-- Automatically extracts:
-  - Classes (`UCLASS` based)
-  - Methods (`UFUNCTION` based)
-  - Attributes (`UPROPERTY` based)
-- Identifies project name and Unreal version (.uproject).
-- Generates a `.puml` file organized into packages by class type:
-  - `GameModes`, `Characters`, `Controllers`, `Components`, etc.
-- Creates dependency relationships between classes that use attributes of another class type.
-- Renders final UML image in **SVG** format with a dark theme.
-- Automatically opens the SVG in the default browser after generation.
+- Elegant graphical interface with log preview and real-time feedback.
+- Automatically detects the `Source` folder.
+- Extracts:
+  - **Classes** (`UCLASS`)
+  - **Methods** (`UFUNCTION`)
+  - **Attributes** (`UPROPERTY`)
+- Detects Unreal project name and engine version from `.uproject`.
+- Generates `.puml` grouped by class type:
+  - `GameModes`, `Characters`, `Controllers`, `Components`, `Actors`, etc.
+- Identifies and draws class dependencies based on used attributes.
+- Cleans up irrelevant lines (e.g., getters, `const override`, macro-only lines).
+- Applies a unique **color per package** for better visual separation.
+- Generates final **SVG diagram** and opens it in the browser.
 
-## 🌟 Visual Style (PlantUML)
+## 🌈 Visual Style (PlantUML)
 
-- Dark background (`#1e1e1e`), white fonts for contrast.
-- Light blue color palette for borders and arrows (`#00bfff`).
-- Classes grouped into logical packages (HUD, Actors, Controllers, etc).
-- Consistent fonts for classes, methods, and attributes.
-- Vertical layout with orthogonal lines (`top to bottom`, `linetype ortho`).
+- Dark theme (`#1e1e1e`) with white fonts and vivid package borders.
+- Direction: `left to right`
+- Layout: `smetana` (optimal positioning)
+- Each package has its own color:
+  - `Actors`: blue
+  - `Characters`: orange
+  - `Controllers`: teal
+  - `GameModes`: purple
+  - `Components`: cyan
+  - `HUD`: green
+  - etc...
+- Smooth arrows, spacing, and organized layout.
 
 ## 🚀 How to Use
 
-1. Run `UnrealUML_Generator.exe` (or run the Python script directly if preferred).
-2. The `Source` folder will be auto-detected. If needed, change it manually.
-3. Click **"Generate Diagram"**.
-4. The app will generate `YourProject.puml` and convert it into `YourProject.svg`.
-5. The SVG will open automatically in your default browser.
+1. Make sure you have **Java 17+** installed.
+2. Download `plantuml.jar` and place it in the project folder.
+3. Run `run_all.py` (or the compiled `.exe`).
+4. The app will:
+   - Detect your `Source` folder.
+   - Generate `.puml` based on Unreal C++ headers.
+   - Clean the `.puml` file.
+   - Render `.svg` with PlantUML.
+   - Open the final SVG automatically.
 
-> ⚠️ Requires `plantuml.jar` in the same folder as the executable/script to generate the image.
+## ⚙️ Requirements
 
-## 📥 How to Get `plantuml.jar`
-
-The UnrealUML Generator uses [PlantUML](https://plantuml.com/) to convert `.puml` files into visual diagrams.
-
-To obtain `plantuml.jar`:
-
-1. Visit the official PlantUML download page: https://plantuml.com/download
-2. Download the file `plantuml.jar`.
-3. Place the file in the same directory as the `UnrealUML_Generator.exe` or script.
-
-> 💡 PlantUML is an open-source tool developed by Arnaud Roques. All credits to the original authors. For more, visit: https://plantuml.com
-
-## 🛠 Requirements
-
-- Python 3.9+ (if using script version)
-- Java installed (to run `plantuml.jar`)
-- Python libraries:
+- **Python 3.9+** (if using scripts)
+- **Java 17+**
+- Python packages:
   - `customtkinter`
   - `tkinter`
 
+> If Java is missing or outdated, the tool will guide you to install JDK 17.0.12.
+
+## 📅 Get `plantuml.jar`
+
+- Official download: [https://plantuml.com/download](https://plantuml.com/download)
+- Place `plantuml.jar` in the **same folder** as the scripts or executable.
+
 ## 🔍 Output Example
 
-- `UnrealProjectName.puml`
-- `UnrealProjectName.svg`
-- Automatically opens the image with classes grouped by package
+- `YourProjectName.puml`
+- `YourProjectName.svg`
+- Previewed in your default browser, fully themed and grouped.
+
+## 📦 Packaging
+
+To compile with PyInstaller:
+
+```bash
+python -m PyInstaller --onefile --noconsole --icon=unrealuml_icon.ico run_all.py
+```
+
+> Be sure `plantuml.jar` is in the same folder.
 
 ## 🧑‍💻 Author
 
-Developed by [Robson Franco Maciel] focused on Unreal Engine projects.
-
-## 📦 Packaging with PyInstaller
-
-To package the app as a `.exe`, use the following generic command:
-
-```bash
-pyinstaller --onefile --noconsole --icon=unrealuml_icon.ico UnrealUML_Generator.py
-```
-
-To force a full rebuild (clean cache):
-
-```bash
-pyinstaller --onefile --noconsole --clean --icon=unrealuml_icon.ico UnrealUML_Generator.py
-```
-
-> Make sure you are in the same folder as the script and that `plantuml.jar` is available.
+Developed by **Robson Franco Maciel** for Unreal Engine professionals, with clarity, documentation, and architecture visualization in mind.
 
 ---
 
 ## 📗 Versão em Português
 
-**UnrealUML Generator** é uma aplicação visual multiplataforma feita em Python com interface `customtkinter`, projetada para gerar diagramas UML automaticamente a partir do código-fonte de um projeto Unreal Engine.
+**Uuml** é uma aplicação visual moderna feita em Python com `customtkinter`, que gera automaticamente diagramas UML a partir de projetos Unreal Engine em C++.
 
 ## 🔧 Funcionalidades
 
-- Interface visual para selecionar a pasta `Source` do projeto.
-- Detecta automaticamente a pasta `Source` ao iniciar.
-- Extrai automaticamente:
-  - Classes (baseadas em `UCLASS`)
-  - Métodos (baseadas em `UFUNCTION`)
-  - Atributos (baseadas em `UPROPERTY`)
-- Identifica o nome e a versão do projeto Unreal (.uproject).
-- Gera um arquivo `.puml` organizado em pacotes por tipo de classe:
-  - `GameModes`, `Characters`, `Controllers`, `Components`, etc.
-- Cria relações de dependência entre classes que utilizam atributos de outra classe.
-- Renderiza a imagem UML final no formato **SVG** com tema escuro.
-- Abre automaticamente o SVG no navegador padrão após a geração.
+- Interface com botão "Gerar Tudo" e área de log ao vivo.
+- Detecção automática da pasta `Source`.
+- Extração de:
+  - **Classes** (`UCLASS`)
+  - **Métodos** (`UFUNCTION`)
+  - **Atributos** (`UPROPERTY`)
+- Leitura do nome do projeto e versão do `.uproject`.
+- Agrupamento de classes em pacotes lógicos com **cores distintas**.
+- Identificação de dependências entre classes com base nos atributos.
+- Remoção automática de linhas irrelevantes (e.g., `const`, `ATTRIBUTE_ACCESSORS`, getters/setters).
+- Geração de `SeuProjeto.puml` → limpeza → `SeuProjeto.svg`.
+- Visualização automática do diagrama no navegador.
 
-## 🌟 Estilo Visual (PlantUML)
+## 🌈 Estilo Visual
 
-- Fundo escuro (`#1e1e1e`), fontes brancas para contraste.
-- Paleta de cores azul-claro para bordas e setas (`#00bfff`).
-- Classes agrupadas em pacotes lógicos (HUD, Actors, Controllers, etc).
-- Fontes consistentes para classes, métodos e atributos.
-- Layout vertical com linhas ortogonais (`top to bottom`, `linetype ortho`).
+- Tema escuro com layout `left to right`, algoritmo `smetana`.
+- Cores por pacote:
+  - `Actors`: azul
+  - `Characters`: laranja
+  - `Controllers`: ciano escuro
+  - `GameModes`: roxo
+  - `Components`: azul claro
+  - `HUD`: verde
+  - etc...
+- Bordas em destaque, fontes claras, setas suaves e espaçamento ideal.
 
 ## 🚀 Como Usar
 
-1. Execute `UnrealUML_Generator.exe` (ou o script Python diretamente, se preferir).
-2. A pasta `Source` será detectada automaticamente. Se necessário, altere manualmente.
-3. Clique em **"Gerar Diagrama"**.
-4. O app gerará `SeuProjeto.puml` e o converterá em `SeuProjeto.svg`.
-5. O SVG será aberto automaticamente no navegador padrão.
+1. Instale o Java 17+.
+2. Baixe o `plantuml.jar` de [https://plantuml.com/download](https://plantuml.com/download).
+3. Coloque `plantuml.jar` na mesma pasta dos scripts.
+4. Execute `run_all.py` ou o `.exe`.
+5. O app irá:
+   - Detectar a pasta `Source`
+   - Gerar o `.puml`
+   - Limpar o `.puml`
+   - Renderizar o `.svg`
+   - Abrir no navegador automaticamente
 
-> ⚠️ Requer `plantuml.jar` na mesma pasta que o executável/script para gerar a imagem.
+> Se o Java estiver desatualizado, o app abrirá o link correto para baixar o JDK 17.0.12 automaticamente.
 
-## 📥 Como Baixar o `plantuml.jar`
-
-O UnrealUML Generator utiliza o [PlantUML](https://plantuml.com/) para converter arquivos `.puml` em diagramas visuais.
-
-Para obter o `plantuml.jar`:
-
-1. Acesse o site oficial do PlantUML: https://plantuml.com/download
-2. Baixe o arquivo `plantuml.jar`.
-3. Coloque o arquivo na mesma pasta do `UnrealUML_Generator.exe` ou script.
-
-> 💡 PlantUML é uma ferramenta open-source desenvolvida por Arnaud Roques. Todos os créditos aos autores originais. Mais em: https://plantuml.com
-
-## 🛠 Requisitos
-
-- Python 3.9+ (se for usar via script)
-- Java instalado (para executar o `plantuml.jar`)
-- Bibliotecas Python:
-  - `customtkinter`
-  - `tkinter`
-
-## 🔍 Exemplo de Saída
-
-- `UnrealProjectName.puml`
-- `UnrealProjectName.svg`
-- A imagem abre automaticamente com as classes organizadas por pacote
-
-## 🧑‍💻 Autor
-
-Desenvolvido por [Robson Franco Maciel] com foco em projetos Unreal Engine.
-
-## 📦 Empacotamento com PyInstaller
-
-Para empacotar o app como `.exe`, utilize o seguinte comando genérico:
+## 📦 Empacotamento
 
 ```bash
-pyinstaller --onefile --noconsole --icon=unrealuml_icon.ico UnrealUML_Generator.py
+python -m PyInstaller --onefile --noconsole --icon=unrealuml_icon.ico run_all.py
 ```
 
-Para forçar uma recompilação completa (limpeza de cache):
+## 👤 Autor
 
-```bash
-pyinstaller --onefile --noconsole --clean --icon=unrealuml_icon.ico UnrealUML_Generator.py
-```
+Desenvolvido por **Robson Franco Maciel** para profissionais de Unreal Engine que precisam visualizar, documentar e entender a arquitetura de grandes projetos de forma clara.
 
-> Certifique-se de estar na mesma pasta do script e com o `plantuml.jar` disponível.
+## 🖼️ Logo
+
+![Uuml Logo](images/logo.png)
 
 ---
-**UnrealUML Generator** é uma ferramenta que facilita a compreensão estrutural de projetos Unreal Engine. Ideal para documentação, onboarding de equipes e visualização rápida da arquitetura geral do jogo.
+
+**Uuml** nasceu para facilitar a leitura estrutural de grandes projetos Unreal. Ideal para documentação, times distribuídos, onboarding técnico e engenharia reversa visual.
+
