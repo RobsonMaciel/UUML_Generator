@@ -39,7 +39,7 @@
 
 1. Make sure you have **Java 17+** installed.
 2. Download `plantuml.jar` and place it in the project folder.
-3. Run `run_all.py` (or the compiled `.exe`).
+3. Run `UnrealUML_APP.py` (or the compiled `.exe`).
 4. The app will:
    - Detect your `Source` folder.
    - Generate `.puml` based on Unreal C++ headers.
@@ -57,10 +57,17 @@
 
 > If Java is missing or outdated, the tool will guide you to install JDK 17.0.12.
 
-## 📅 Get `plantuml.jar`
+## 📥 How to Get `plantuml.jar`
 
-- Official download: [https://plantuml.com/download](https://plantuml.com/download)
-- Place `plantuml.jar` in the **same folder** as the scripts or executable.
+The UnrealUML Generator uses [PlantUML](https://plantuml.com/) to convert `.puml` files into visual diagrams.
+
+To obtain `plantuml.jar`:
+
+1. Visit the official PlantUML download page: https://plantuml.com/download
+2. Download the file `plantuml.jar`.
+3. Place the file in the same directory as the `UnrealUML_Generator.exe` or script.
+
+> 💡 PlantUML is an open-source tool developed by Arnaud Roques. All credits to the original authors. For more, visit: https://plantuml.com
 
 ## 🔍 Output Example
 
@@ -73,7 +80,7 @@
 To compile with PyInstaller:
 
 ```bash
-python -m PyInstaller --onefile --noconsole --icon=unrealuml_icon.ico run_all.py
+python -m PyInstaller --onefile --noconsole --icon=unrealuml_icon.ico UnrealUML_APP.py
 ```
 
 > Be sure `plantuml.jar` is in the same folder.
@@ -121,7 +128,7 @@ Developed by **Robson Franco Maciel** for Unreal Engine professionals, with clar
 1. Instale o Java 17+.
 2. Baixe o `plantuml.jar` de [https://plantuml.com/download](https://plantuml.com/download).
 3. Coloque `plantuml.jar` na mesma pasta dos scripts.
-4. Execute `run_all.py` ou o `.exe`.
+4. Execute `UnrealUML_APP.py` ou o `.exe`.
 5. O app irá:
    - Detectar a pasta `Source`
    - Gerar o `.puml`
@@ -131,10 +138,22 @@ Developed by **Robson Franco Maciel** for Unreal Engine professionals, with clar
 
 > Se o Java estiver desatualizado, o app abrirá o link correto para baixar o JDK 17.0.12 automaticamente.
 
+## 📥 Obter `plantuml.jar`
+
+O UnrealUML Generator utiliza o [PlantUML](https://plantuml.com/) para converter arquivos `.puml` em diagramas visuais.
+
+Para obter o `plantuml.jar`:
+
+1. Acesse a página oficial de download: https://plantuml.com/download
+2. Baixe o arquivo `plantuml.jar`
+3. Coloque o arquivo na mesma pasta dos scripts ou do executável
+
+> 💡 O PlantUML é uma ferramenta open-source desenvolvida por Arnaud Roques. Todos os créditos aos autores originais. Mais em: https://plantuml.com
+
 ## 📦 Empacotamento
 
 ```bash
-python -m PyInstaller --onefile --noconsole --icon=unrealuml_icon.ico run_all.py
+python -m PyInstaller --onefile --noconsole --icon=unrealuml_icon.ico UnrealUML_APP.py
 ```
 
 ## 👤 Autor
@@ -148,4 +167,3 @@ Desenvolvido por **Robson Franco Maciel** para profissionais de Unreal Engine qu
 ---
 
 **Uuml** nasceu para facilitar a leitura estrutural de grandes projetos Unreal. Ideal para documentação, times distribuídos, onboarding técnico e engenharia reversa visual.
-
