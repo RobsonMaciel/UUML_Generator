@@ -114,7 +114,7 @@ def generate_puml(project_dir):
     with open(output_file, "w", encoding="utf-8") as output:
         output.write("@startuml\n")
         output.write("left to right direction\n")
-  
+        output.write("skinparam TitleFontColor #ffffff\n")
         output.write("skinparam ranksep 1.3\n")
         output.write("skinparam nodesep 1.0\n")
         output.write("skinparam linetype polyline\n")
