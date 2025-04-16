@@ -33,11 +33,11 @@ if __name__ == "__main__":
     puml_file = next((f for f in os.listdir(current_dir) if f.endswith(".puml")), None)
 
     if not puml_file:
-        print("Nenhum arquivo .puml encontrado para limpar.")
+        print("No .puml file found to clean.")
         exit(1)
 
     original_path = os.path.join(current_dir, puml_file)
     cleaned_path = original_path.replace(".puml", "_cleaned.puml")
 
     final_path = clean_puml(original_path, cleaned_path)
-    print(f"PUML limpo salvo como: {final_path}")
+    print(f"Cleaned PUML saved as: {final_path}")

@@ -6,10 +6,10 @@ from collections import defaultdict
 def clean_header_text(text):
     text = re.sub(r"//.*", "", text)
     text = re.sub(r"/\*.*?\*/", "", text, flags=re.DOTALL)
-    text = re.sub(r"(?m)^\s*(public|protected|private)\s*:\s*$", "", text)
-    text = re.sub(r"(?m)^\s*const\s*$", "", text)
-    text = re.sub(r"(?m)^\s*const override\s*$", "", text)
-    text = re.sub(r"\b(class|struct)\s+\w+\s*$", "", text, flags=re.MULTILINE)
+    text = re.sub(r"(?m)^\s*(public|protected|private)\s*:\s$", "", text)
+    text = re.sub(r"(?m)^\s*const\s$", "", text)
+    text = re.sub(r"(?m)^\s*const override\s$", "", text)
+    text = re.sub(r"\b(class|struct)\s+\w+\s$", "", text, flags=re.MULTILINE)
     text = re.sub(r"(?m)^\s*$", "", text)
     return text
 
@@ -73,7 +73,7 @@ def classify_group_by_base(parent):
     elif "Object" in parent:
         return "Helpers"
     else:
-        return "Outros"
+        return "Others"
 
 def get_project_info(base_path):
     uproject_path = next((os.path.join(base_path, f) for f in os.listdir(base_path) if f.endswith(".uproject")), None)
@@ -133,11 +133,33 @@ def generate_puml(project_dir):
         output.write("  BackgroundColor #2c2c2c\n")
         output.write("  BorderColor #00bfff\n")
         output.write("  FontColor #ffffff\n")
+        output.write("  BackgroundColor<<Actors>> #193c7c\n")
+        output.write("  BorderColor<<Actors>> #1e90ff\n")
+        output.write("  BackgroundColor<<Characters>> #ff8c00\n")
+        output.write("  BorderColor<<Characters>> #ff6600\n")
+        output.write("  BackgroundColor<<Controllers>> #1f4e4e\n")
+        output.write("  BorderColor<<Controllers>> #00ced1\n")
+        output.write("  BackgroundColor<<GameModes>> #3c245c\n")
+        output.write("  BorderColor<<GameModes>> #a020f0\n")
+        output.write("  BackgroundColor<<Components>> #2c72a8\n")
+        output.write("  BorderColor<<Components>> #00bfff\n")
+        output.write("  BackgroundColor<<HUD>> #1d5e3b\n")
+        output.write("  BorderColor<<HUD>> #00ff7f\n")
+        output.write("  BackgroundColor<<Helpers>> #484848\n")
+        output.write("  BorderColor<<Helpers>> #aaaaaa\n")
+        output.write("  BackgroundColor<<DataAssets>> #553300\n")
+        output.write("  BorderColor<<DataAssets>> #ffaa00\n")
+        output.write("  BackgroundColor<<Persistence>> #006060\n")
+        output.write("  BorderColor<<Persistence>> #00cccc\n")
+        output.write("  BackgroundColor<<BlueprintLibraries>> #2e003e\n")
+        output.write("  BorderColor<<BlueprintLibraries>> #b266ff\n")
+        output.write("  BackgroundColor<<Others>> #404040\n")
+        output.write("  BorderColor<<Others>> #999999\n")
         output.write("}\n")
         output.write(f"title {project_name} - Unreal Engine {engine_version}\n")
 
         for group, class_list in class_groups.items():
-            output.write(f"package \"{group}\" {{\n")
+            output.write(f"package \"{group}\" <<{group}>> {{\n")
             for cls, parent, attributes, methods in class_list:
                 output.write(f"  class {cls} extends {parent} {{\n")
                 for attr_type, attr_name in attributes:
@@ -152,12 +174,12 @@ def generate_puml(project_dir):
 
         output.write("@enduml\n")
 
-    print(f"PUML bruto gerado: {output_file}")
+    print(f"Raw PUML generated: {output_file}")
     return output_file
 
 if __name__ == "__main__":
     source_path = os.path.join(os.getcwd(), "Source")
     if not os.path.exists(source_path):
-        print("Pasta 'Source' não encontrada.")
+        print("'Source' folder not found.")
     else:
         generate_puml(source_path)

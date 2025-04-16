@@ -16,16 +16,16 @@ def render_svg(puml_path):
     try:
         subprocess.run(["java", "-jar", "plantuml.jar", "-tsvg", os.path.basename(puml_path)], cwd=folder, check=True)
         if os.path.exists(svg_file):
-            print(f"SVG gerado com sucesso: {svg_file}")
+            print(f"SVG successfully generated: {svg_file}")
             webbrowser.open(svg_file)
         else:
-            print("Erro: SVG não foi gerado.")
+            print("Error: SVG was not generated.")
     except subprocess.CalledProcessError as e:
-        print(f"Erro ao executar PlantUML: {e}")
+        print(f"Error executing PlantUML: {e}")
 
 if __name__ == "__main__":
     puml_file = find_puml_file()
     if puml_file:
         render_svg(puml_file)
     else:
-        print("Nenhum arquivo .puml encontrado na pasta atual.")
+        print("No .puml file found in the current directory.")
