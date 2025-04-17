@@ -6,23 +6,24 @@
 
 ## 🔧 Features
 
-- Elegant graphical interface with log preview and real-time feedback.
-- Automatically detects the `Source` folder.
+- Unified single-file Python codebase for easy maintenance and build
+- Elegant graphical interface with log preview and real-time feedback
+- Automatically detects the `CodeExamples` folder (containing Unreal Engine C++ header examples)
 - Extracts:
   - **Classes** (`UCLASS`)
   - **Methods** (`UFUNCTION`)
   - **Attributes** (`UPROPERTY`)
-- Detects Unreal project name and engine version from `.uproject`.
+- Detects Unreal project name and engine version from `.uproject`
 - Generates `.puml` grouped by class type:
   - `GameModes`, `Characters`, `Controllers`, `Components`, `Actors`, etc.
-- Identifies and draws class dependencies based on used attributes.
-- Cleans up irrelevant lines (e.g., getters, `const override`, macro-only lines).
-- Applies a unique **color per package** for better visual separation.
-- Generates final **SVG diagram** and opens it in the browser.
+- Identifies and draws class dependencies based on used attributes
+- Cleans up irrelevant lines (e.g., getters, `const override`, macro-only lines)
+- Applies a unique **color per package** for better visual separation
+- Generates final **SVG diagram** and opens it in the browser
 
 ## 🌈 Visual Style (PlantUML)
 
-- Dark theme (`#1e1e1e`) with white fonts and vivid package borders.
+- Dark theme (`#1e1e1e`) with white fonts and vivid package borders
 - Direction: `left to right`
 - Layout: `smetana` (optimal positioning)
 - Each package has its own color:
@@ -33,19 +34,19 @@
   - `Components`: cyan
   - `HUD`: green
   - etc...
-- Smooth arrows, spacing, and organized layout.
+- Smooth arrows, spacing, and organized layout
 
 ## 🚀 How to Use
 
 1. Make sure you have **Java 17+** installed.
-2. Download `plantuml.jar` and place it in the project folder.
+2. Go to the `src` folder. All code, the executable, icon, and `plantuml.jar` are there.
 3. Run `UnrealUML_APP.py` (or the compiled `.exe`).
 4. The app will:
-   - Detect your `Source` folder.
-   - Generate `.puml` based on Unreal C++ headers.
-   - Clean the `.puml` file.
-   - Render `.svg` with PlantUML.
-   - Open the final SVG automatically.
+   - Detect your `CodeExamples` folder (with Unreal C++ headers for testing)
+   - Generate `.puml` based on Unreal C++ headers
+   - Clean the `.puml` file
+   - Render `.svg` with PlantUML
+   - Open the final SVG automatically
 
 ## ⚙️ Requirements
 
@@ -57,43 +58,32 @@
 
 > If Java is missing or outdated, the tool will guide you to install JDK 17.0.12.
 
-## 📥 How to Get `plantuml.jar`
+## 📁 Project Structure
 
-The UnrealUML Generator uses [PlantUML](https://plantuml.com/) to convert `.puml` files into visual diagrams.
-
-To obtain `plantuml.jar`:
-
-1. Visit the official PlantUML download page: https://plantuml.com/download
-2. Download the file `plantuml.jar`.
-3. Place the file in the same directory as the `UnrealUML_Generator.exe` or script.
-
-> 💡 PlantUML is an open-source tool developed by Arnaud Roques. All credits to the original authors. For more, visit: https://plantuml.com
-
-## 🔍 Output Example
-
-- `YourProjectName.puml`
-- `YourProjectName.svg`
-- Previewed in your default browser, fully themed and grouped.
-
-## 📦 Packaging
-
-To compile with PyInstaller:
-
-```bash
-python -m PyInstaller --onefile --noconsole --icon=unrealuml_icon.ico UnrealUML_APP.py
+```
+/UnrealUML
+  /src
+    UnrealUML_APP.py
+    UnrealUML_APP.exe
+    unrealuml_icon.ico
+    plantuml.jar
+  /CodeExamples
+    (all .h files for testing)
+  README.md, LICENSE, etc.
 ```
 
-> Be sure `plantuml.jar` is in the same folder.
+## 📥 How to Get `plantuml.jar`
 
-## 🧑‍💻 Author
+You can download the latest version of PlantUML from:
+https://plantuml.com/download
 
-Developed by **Robson Franco Maciel** for Unreal Engine professionals, with clarity, documentation, and architecture visualization in mind.
+Place the `plantuml.jar` file inside the `src` folder.
 
-## 📄 License
+## 📝 Notes
 
-This project is licensed under the [MIT License](LICENSE).
-
-© 2025 Robson Franco Maciel. Please include proper attribution when using this tool.
+- All Python and executable files are now inside the `src` directory for better organization.
+- Example Unreal Engine C++ headers for testing are in `CodeExamples`.
+- The project is ready for packaging and distribution as a single .exe with a custom icon.
 
 ---
 
@@ -104,7 +94,7 @@ This project is licensed under the [MIT License](LICENSE).
 ## 🔧 Funcionalidades
 
 - Interface com botão "Gerar Tudo" e área de log ao vivo.
-- Detecção automática da pasta `Source`.
+- Detecção automática da pasta `CodeExamples`.
 - Extração de:
   - **Classes** (`UCLASS`)
   - **Métodos** (`UFUNCTION`)
@@ -132,29 +122,14 @@ This project is licensed under the [MIT License](LICENSE).
 ## 🚀 Como Usar
 
 1. Instale o Java 17+.
-2. Baixe o `plantuml.jar` de [https://plantuml.com/download](https://plantuml.com/download).
-3. Coloque `plantuml.jar` na mesma pasta dos scripts.
-4. Execute `UnrealUML_APP.py` ou o `.exe`.
-5. O app irá:
-   - Detectar a pasta `Source`
-   - Gerar o `.puml`
-   - Limpar o `.puml`
-   - Renderizar o `.svg`
-   - Abrir no navegador automaticamente
-
-> Se o Java estiver desatualizado, o app abrirá o link correto para baixar o JDK 17.0.12 automaticamente.
-
-## 📥 Obter `plantuml.jar`
-
-O UnrealUML Generator utiliza o [PlantUML](https://plantuml.com/) para converter arquivos `.puml` em diagramas visuais.
-
-Para obter o `plantuml.jar`:
-
-1. Acesse a página oficial de download: https://plantuml.com/download
-2. Baixe o arquivo `plantuml.jar`
-3. Coloque o arquivo na mesma pasta dos scripts ou do executável
-
-> 💡 O PlantUML é uma ferramenta open-source desenvolvida por Arnaud Roques. Todos os créditos aos autores originais. Mais em: https://plantuml.com
+2. Vá para a pasta `src`. Todos os arquivos de código, executável, ícone e `plantuml.jar` estão lá.
+3. Execute `UnrealUML_APP.py` (ou o compilado `.exe`).
+4. O app irá:
+   - Detectar a pasta `CodeExamples` (com headers C++ do Unreal Engine para teste)
+   - Gerar `.puml` com base nos headers C++ do Unreal Engine
+   - Limpar o arquivo `.puml`
+   - Renderizar `.svg` com PlantUML
+   - Abrir o diagrama final no navegador automaticamente
 
 ## 📦 Empacotamento
 
@@ -169,8 +144,6 @@ Desenvolvido por **Robson Franco Maciel** para profissionais de Unreal Engine qu
 ## 📄 Licença
 
 Este projeto está licenciado sob a [Licença MIT](LICENSE).
-
-© 2025 Robson Franco Maciel. Por favor, inclua os devidos créditos ao utilizar esta ferramenta.
 
 ## 🖼️ Logo
 
