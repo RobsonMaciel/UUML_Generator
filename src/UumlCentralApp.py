@@ -16,21 +16,32 @@ PROJECT_SIGNATURES = {
     "C++ for Unreal": ["UCLASS", ".uproject"],
 }
 
+def find_files_with_ext(root, exts, exclude_dirs=None):
+    for dirpath, dirnames, filenames in os.walk(root):
+        if exclude_dirs and any(ex in dirpath for ex in exclude_dirs):
+            continue
+        for f in filenames:
+            if any(f.endswith(ext) for ext in exts):
+                return True
+    return False
+
 def detect_project_type(project_dir):
-    # Unreal Engine: pasta Source com .h/.cpp
+    # Unreal Engine: .uproject obrigatório + Source com .h/.cpp
+    uproject_files = [f for f in os.listdir(project_dir) if f.endswith('.uproject')]
     source_dir = os.path.join(project_dir, 'Source')
-    if os.path.isdir(source_dir):
-        for root, _, files in os.walk(source_dir):
-            if any(f.endswith('.h') or f.endswith('.cpp') for f in files):
-                return 'cpp4ue'
-    # Unity: arquivos .cs e possíveis arquivos de projeto Unity
-    if any(f.endswith('.cs') for f in os.listdir(project_dir)):
+    if uproject_files and os.path.isdir(source_dir) and find_files_with_ext(source_dir, ['.h', '.cpp']):
+        return 'cpp4ue'
+    # Unity
+    if find_files_with_ext(project_dir, ['.cs']) and (
+        os.path.exists(os.path.join(project_dir, 'Assembly-CSharp.csproj')) or
+        os.path.isdir(os.path.join(project_dir, 'ProjectSettings'))
+    ):
         return 'unity'
-    # Python: arquivos .py
-    if any(f.endswith('.py') for f in os.listdir(project_dir)):
+    # Python
+    if find_files_with_ext(project_dir, ['.py']):
         return 'python'
-    # Puro C++
-    if any(f.endswith('.cpp') or f.endswith('.h') for f in os.listdir(project_dir)):
+    # C++ puro (mas não Unreal)
+    if find_files_with_ext(project_dir, ['.cpp', '.h'], exclude_dirs=['Source']):
         return 'cpp'
     return None
 
