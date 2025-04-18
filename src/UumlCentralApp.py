@@ -28,11 +28,30 @@ def find_files_with_ext(root, exts, exclude_dirs=None):
     return False
 
 def detect_project_type(project_dir):
-    # Unreal Engine: .uproject obrigatório + Source com .h/.cpp
+    # Unreal Engine: .uproject obrigatório
     uproject_files = [f for f in os.listdir(project_dir) if f.endswith('.uproject')]
     source_dir = os.path.join(project_dir, 'Source')
-    if uproject_files and os.path.isdir(source_dir) and find_files_with_ext(source_dir, ['.h', '.cpp']):
-        return 'cpp4ue'
+    has_cpp = os.path.isdir(source_dir) and find_files_with_ext(source_dir, ['.h', '.cpp'])
+    # Blueprint: tem .uproject, tem .uasset em Content, mas NÃO tem Source com .cpp/.h
+    content_dir = None
+    for root, dirs, files in os.walk(project_dir):
+        for d in dirs:
+            if d.lower() == 'content':
+                content_dir = os.path.join(root, d)
+                break
+        if content_dir:
+            break
+    has_uasset = False
+    if content_dir:
+        for root, dirs, files in os.walk(content_dir):
+            if any(f.endswith('.uasset') for f in files):
+                has_uasset = True
+                break
+    if uproject_files:
+        if has_cpp:
+            return 'cpp4ue'
+        elif has_uasset:
+            return 'unrealbp'
     # Unity
     if find_files_with_ext(project_dir, ['.cs']):
         # CSharp for Unity: tem Assembly-CSharp.csproj ou ProjectSettings
@@ -135,6 +154,13 @@ if __name__ == "__main__":
             from GoUML import main as gen_go
             print(f"[UML] Generating UML for Go in {project_dir}")
             gen_go(project_dir)
+            print("[UML] Finished!")
+            if getattr(sys, 'frozen', False):
+                input('Pressione ENTER para sair...')
+        elif tipo == "unrealbp":
+            print(f"[UML] Generating UML for Unreal Blueprint in {project_dir}")
+            from UnrealForBP import batch_export_blueprints_to_json
+            batch_export_blueprints_to_json(project_dir)
             print("[UML] Finished!")
             if getattr(sys, 'frozen', False):
                 input('Pressione ENTER para sair...')

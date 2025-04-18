@@ -85,9 +85,15 @@ python src/UumlCentralApp.py --project path/to/PythonProject --type python
     CPPGenericUML.py
     GoUML.py
     SVGRenderer.py
-    # ...other modules
+    /UAssetAPI
+      UAssetAPI.dll
+      UAssetAPI.pdb
+      UAssetAPI.deps.json
+      UAssetAPI.runtimeconfig.json
+      # ...other UAssetAPI dependencies (e.g., Newtonsoft.Json.dll)
     plantuml.jar
     unrealuml_icon.ico
+    # ...other modules
   /CodeExamples
   README.md, LICENSE, etc.
 ```
@@ -106,12 +112,27 @@ python src/UumlCentralApp.py --project path/to/PythonProject --type python
 
 ## Standalone Executable
 
-To create a standalone executable (Windows) with all Python modules embedded, run the following command from the `src` directory:
+To create a standalone executable (Windows) with all Python modules embedded, follow these steps:
+
+- Todos os arquivos da pasta `published-cli` devem ser copiados para `src/UAssetAPI`.
+- O comando PyInstaller deve incluir todos os arquivos da subpasta UAssetAPI:
 
 ```powershell
-python -m PyInstaller --onefile --icon=UumlCentralApp.ico --add-data "plantuml.jar;." --hidden-import=CPPForUnrealEngine --hidden-import=CSharpForUnity --hidden-import=CPPGenericUML --hidden-import=CSharpUML --hidden-import=GoUML UumlCentralApp.py
+python -m PyInstaller --onefile --icon=UumlCentralApp.ico \
+  --add-data "plantuml.jar;." \
+  --add-data "UAssetAPI/*;UAssetAPI" \
+  --hidden-import=CPPForUnrealEngine \
+  --hidden-import=CSharpForUnity \
+  --hidden-import=CPPGenericUML \
+  --hidden-import=CSharpUML \
+  --hidden-import=GoUML \
+  UumlCentralApp.py
 ```
 
+- Isso garante que todas as dependências do .NET e do UAssetAPI estejam disponíveis no pacote final.
+
+- Coloque todos os arquivos do UAssetAPI (DLL, .json, .pdb, etc) na subpasta `src/UAssetAPI`.
+- Se houver outros arquivos/dlls necessários, adicione-os na mesma linha.
 - The executable will be created in `src/dist/UumlCentralApp.exe`.
 - Place `plantuml.jar` in the same folder as the executable for PlantUML export.
 - Run the executable from the command line or use the provided `.bat` script to pass parameters.
