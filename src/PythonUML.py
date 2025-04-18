@@ -135,6 +135,7 @@ def generate_puml(project_dir):
             '}\n')
         f.write('@enduml\n')
     print(f"PUML generated at: {output_file}")
+    return output_file
 
 if __name__ == "__main__":
     import sys

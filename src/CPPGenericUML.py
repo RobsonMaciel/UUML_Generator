@@ -89,7 +89,7 @@ def generate_puml(project_dir):
                         all_enums[ename] = values
                         file_to_enums[file].append(ename)
                 except Exception as e:
-                    print(f"[WARN] Could not parse {file}: {e}")
+                    print(f"[UML] Error reading {path}: {e}")
     with open(output_file, 'w', encoding='utf-8') as f:
         f.write('@startuml\n')
         f.write('skinparam backgroundColor #23272e\n')
@@ -170,10 +170,18 @@ def generate_puml(project_dir):
             '}\n')
         f.write('@enduml\n')
     print(f"PUML generated at: {output_file}")
+    return output_file
 
 if __name__ == "__main__":
     import sys
     if len(sys.argv) > 1:
-        generate_puml(sys.argv[1])
+        puml_path = generate_puml(sys.argv[1])
+        # Gera SVG e abre automaticamente
+        from CSharpForUnity import render_svg
+        svg = render_svg(puml_path)
+        if svg:
+            print(f"[UML] SVG generated: {svg}")
+        else:
+            print("[UML] SVG not generated!")
     else:
         print("Usage: python CPPGenericUML.py <project_root>")

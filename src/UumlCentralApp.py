@@ -22,7 +22,9 @@ def find_files_with_ext(root, exts, exclude_dirs=None):
             continue
         for f in filenames:
             if any(f.endswith(ext) for ext in exts):
+                print(f"DEBUG: found {f} in {dirpath}")
                 return True
+    print(f"DEBUG: no files with extensions {exts} found in {root}")
     return False
 
 def detect_project_type(project_dir):
@@ -82,14 +84,25 @@ if __name__ == "__main__":
         gen_cpp(project_dir)
         print("[UML] Finished!")
     elif tipo == "unity":
-        from CSharpForUnity import generate_puml as gen_unity
+        from CSharpForUnity import generate_puml as gen_unity, render_svg
         print(f"[UML] Generating UML for Unity C# in {project_dir}")
-        gen_unity(project_dir)
+        puml_path = gen_unity(project_dir)
+        svg = render_svg(puml_path)
+        if svg:
+            print(f"[UML] SVG generated: {svg}")
+        else:
+            print("[UML] SVG not generated!")
         print("[UML] Finished!")
     elif tipo == "python":
         from PythonUML import generate_puml as gen_py
+        from CSharpForUnity import render_svg
         print(f"[UML] Generating UML for Python in {project_dir}")
-        gen_py(project_dir)
+        puml_path = gen_py(project_dir)
+        svg = render_svg(puml_path)
+        if svg:
+            print(f"[UML] SVG generated: {svg}")
+        else:
+            print("[UML] SVG not generated!")
         print("[UML] Finished!")
     else:
         print("Unrecognized project type. Use --type among: cpp4ue, cpp, unity, python.")
