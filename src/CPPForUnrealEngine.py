@@ -21,10 +21,10 @@ def clean_header_text(text):
 def parse_cleaned_header(content):
     # Regex para classes, structs, interfaces Unreal e enums
     class_pattern = re.compile(
-        r'UCLASS\s*(?:\(.*?\))?\s*\n\s*class\s+(?:[A-Z_]+_API\s+)?(\w+)(?:\s*:\s*([A-Za-z0-9_:<> ,]+))?\s*\{',
+        r'(UCLASS\s*(?:\(.*?\))?\s*)?class\s+(?:[A-Z_]+_API\s+)?(\w+)(?:\s*:\s*([A-Za-z0-9_:<> ,]+))?\s*\{',
         re.DOTALL | re.MULTILINE)
     struct_pattern = re.compile(
-        r'USTRUCT\s*(?:\(.*?\))?\s*\n\s*struct\s+(?:[A-Z_]+_API\s+)?(\w+)(?:\s*:\s*([A-Za-z0-9_:<> ,]+))?\s*\{',
+        r'(USTRUCT\s*(?:\(.*?\))?\s*)?struct\s+(?:[A-Z_]+_API\s+)?(\w+)(?:\s*:\s*([A-Za-z0-9_:<> ,]+))?\s*\{',
         re.DOTALL | re.MULTILINE)
     # Structs SEM macro Unreal
     struct_plain_pattern = re.compile(
@@ -39,35 +39,85 @@ def parse_cleaned_header(content):
         re.DOTALL | re.MULTILINE)
     # Enums Unreal
     enum_pattern = re.compile(
-        r'UENUM\s*(?:\(.*?\))?\s*\n\s*enum\s+(?:class\s+)?(\w+)\s*:?\s*\w*\s*\{([^}]*)\}',
+        r'UENUM\s*(?:\(.*?\))?\s*\n\s*enum\s+(?:class\s+)?(\w+)\s*:?.*?\{([^}]*)\}',
         re.DOTALL | re.MULTILINE)
     # Enums C++ comuns
     enum_plain_pattern = re.compile(
-        r'enum\s+(?:class\s+)?(\w+)\s*:?\s*\w*\s*\{([^}]*)\}',
+        r'enum\s+(?:class\s+)?(\w+)\s*:?.*?\{([^}]*)\}',
         re.DOTALL | re.MULTILINE)
+    # Métodos e atributos
+    # Novo: só captura métodos declarados (com ponto e vírgula), nunca inline com corpo
+    method_regex = re.compile(
+        r'(?:UFUNCTION\s*\(.*?\)\s*)?(?:(?:virtual|static|inline)\s+)*([\w:<>&*\s]+?)\s+(\w+)\s*\(([^)]*)\)\s*(?:const)?\s*(?:override)?\s*(?:final)?\s*;',
+        re.MULTILINE)
+    attribute_regex = re.compile(
+        r'(?:UPROPERTY\s*\(.*?\)\s*)?([\w:<>&*]+(?:\s*<.*?>)?(?:\s*[*&])?)\s+(\w+)\s*(?:=\s*[^;]*)?\s*;',
+        re.MULTILINE)
 
     classes = []
     structs = []
     enums = []
     interfaces = []
-    methods = []
-    attributes = []
 
-    # Classes Unreal
-    for match in class_pattern.finditer(content):
-        name = match.group(1)
-        parent = match.group(2) if match.lastindex and match.lastindex >= 2 else None
-        classes.append((name, parent))
-    # Structs Unreal
-    for match in struct_pattern.finditer(content):
-        name = match.group(1)
-        parent = match.group(2) if match.lastindex and match.lastindex >= 2 else None
-        structs.append((name, parent))
-    # Structs SEM macro Unreal
-    for match in struct_plain_pattern.finditer(content):
-        name = match.group(1)
-        parent = match.group(2) if match.lastindex and match.lastindex >= 2 else None
-        structs.append((name, parent))
+    # Extrai classes e structs com seus blocos
+    entities = []
+    for pattern, kind in [
+        (class_pattern, 'class'),
+        (struct_pattern, 'struct'),
+        (struct_plain_pattern, 'struct_plain')]:
+        for match in pattern.finditer(content):
+            name = match.group(2)
+            parent = match.group(3) if match.lastindex and match.lastindex >= 3 else None
+            # Corrige structs/classes com modificador de acesso acidental
+            if name and name.strip().startswith(('public ', 'protected ', 'private ')):
+                name = re.sub(r'^(public|protected|private)\s*:?', '', name).strip()
+            start = match.end()
+            # Busca o fim do bloco da entidade
+            brace_level = 1
+            i = start
+            while i < len(content) and brace_level > 0:
+                if content[i] == '{':
+                    brace_level += 1
+                elif content[i] == '}':
+                    brace_level -= 1
+                i += 1
+            body = content[start:i-1] if i > start else ''
+            # Limpa modificadores de acesso do corpo antes de buscar métodos
+            body_clean = re.sub(r'^[ \t]*(public|protected|private)\s*:.*$', '', body, flags=re.MULTILINE)
+            # Remove blocos { ... } (métodos inline e lambdas) antes de buscar atributos
+            def remove_brace_blocks(text):
+                result = []
+                i = 0
+                n = len(text)
+                while i < n:
+                    if text[i] == '{':
+                        brace_level = 1
+                        i += 1
+                        while i < n and brace_level > 0:
+                            if text[i] == '{':
+                                brace_level += 1
+                            elif text[i] == '}':
+                                brace_level -= 1
+                            i += 1
+                    else:
+                        result.append(text[i])
+                        i += 1
+                return ''.join(result)
+            body_clean_no_braces = remove_brace_blocks(body_clean)
+            raw_methods = method_regex.findall(body_clean)
+            methods = []
+            for return_type, method_name, params in raw_methods:
+                method_name_clean = re.sub(r'^(public|protected|private)\s*:?', '', method_name, flags=re.IGNORECASE).replace(':', '').strip()
+                methods.append((return_type, method_name_clean, params))
+            attributes = [(attr_type.strip(), attr_name.strip()) for attr_type, attr_name in attribute_regex.findall(body_clean_no_braces)
+                          if not attr_type.startswith('class') and 'override' not in attr_type and attr_type.strip() != 'const']
+            entities.append((name, parent, kind, attributes, methods))
+    # Separa classes e structs
+    for name, parent, kind, attributes, methods in entities:
+        if kind == 'class':
+            classes.append((name, parent, attributes, methods))
+        else:
+            structs.append((name, parent, attributes, methods))
     # Interfaces Unreal
     for match in interface_pattern.finditer(content):
         name = match.group(1)
@@ -88,14 +138,12 @@ def parse_cleaned_header(content):
         values = [v.strip().split('=')[0].split(' ')[0] for v in values_block.split(',') if v.strip()]
         enums.append((enum_name, values))
 
-    # TODO: aprimorar extração de métodos e atributos se necessário
-
-    return classes, structs, enums, methods, attributes
+    return classes, structs, enums, interfaces
 
 def parse_file(file_path):
     try:
         if not file_path.endswith(".h"):
-            return [], [], [], [], []
+            return [], [], [], []
 
         with open(file_path, "r", encoding="utf-8", errors="ignore") as file:
             raw = file.read()
@@ -103,7 +151,7 @@ def parse_file(file_path):
         cleaned = clean_header_text(raw)
         return parse_cleaned_header(cleaned)
     except Exception:
-        return [], [], [], [], []
+        return [], [], [], []
 
 def extract_class_name(type_str):
     type_str = type_str.replace("const", "").strip()
@@ -163,8 +211,6 @@ def generate_puml(project_dir, entidades_txt_path=None):
     all_structs = []
     all_enums = []
     all_interfaces = []
-    all_methods = []
-    all_attributes = []
 
     files_found = 0
     files_parsed = 0
@@ -181,7 +227,7 @@ def generate_puml(project_dir, entidades_txt_path=None):
                     with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
                         content = f.read()
                     cleaned = clean_header_text(content)
-                    classes, structs, enums, methods, attributes = parse_cleaned_header(cleaned)
+                    classes, structs, enums, interfaces = parse_cleaned_header(cleaned)
                     files_parsed += 1
                     # Coletar nomes para entidades.txt
                     for c in classes:
@@ -200,10 +246,8 @@ def generate_puml(project_dir, entidades_txt_path=None):
                         all_structs.extend(structs)
                     if enums:
                         all_enums.extend(enums)
-                    if methods:
-                        all_methods.extend(methods)
-                    if attributes:
-                        all_attributes.extend(attributes)
+                    if interfaces:
+                        all_interfaces.extend(interfaces)
                 except Exception as e:
                     print(f"[WARN] Failed to parse {file_path}: {e}")
     # Fallback defensivo: garantir que os dicionários existam antes do uso
@@ -314,20 +358,35 @@ def generate_puml(project_dir, entidades_txt_path=None):
             for struct_item in all_structs:
                 name = None
                 parent = None
+                attributes = []
+                methods = []
                 if isinstance(struct_item, (list, tuple)):
                     name = struct_item[0]
                     if len(struct_item) > 1:
                         parent = struct_item[1]
+                    if len(struct_item) > 2:
+                        attributes = struct_item[2]
+                    if len(struct_item) > 3:
+                        methods = struct_item[3]
                 if not name:
                     continue
                 f.write(f'  struct {name} <<UnrealStruct>> {{\n')
-                # (Opcional: atributos)
-                # Aqui, se desejar, pode buscar atributos por nome
+                for attr_type, attr_name in attributes:
+                    # Remove modificadores de acesso (public, protected, private) do início do tipo
+                    attr_type_clean = re.sub(r'^(public|protected|private)\s*:?', '', attr_type)
+                    attr_type_clean = attr_type_clean.replace(':', '').strip()
+                    f.write(f'    {attr_type_clean} {attr_name}\n')
+                for return_type, method_name, params in methods:
+                    return_type_clean = re.sub(r'^(public|protected|private)\s*:?', '', return_type)
+                    return_type_clean = return_type_clean.replace(':', '').strip()
+                    # Remove construtores com public: no nome do método
+                    method_name_clean = re.sub(r'^(public|protected|private)\s*:?', '', method_name, flags=re.IGNORECASE).replace(':', '').strip()
+                    f.write(f'    {return_type_clean} {method_name_clean}({params.strip()})\n')
                 f.write('  }\n')
             f.write('}\n')
 
         # --- Pacote de Interfaces (opcional, caso queira exibir) ---
-        if 'interfaces' in locals() and all_interfaces:
+        if all_interfaces:
             f.write(f'package "Interfaces" <<UnrealGroup>> {{\n')
             for iface in all_interfaces:
                 name = iface[0]
@@ -339,21 +398,39 @@ def generate_puml(project_dir, entidades_txt_path=None):
         for item in all_classes:
             name = None
             parent = None
+            attributes = []
+            methods = []
             if isinstance(item, (list, tuple)):
                 name = item[0]
                 if len(item) > 1:
                     parent = item[1]
+                if len(item) > 2:
+                    attributes = item[2]
+                if len(item) > 3:
+                    methods = item[3]
             if not name:
                 continue
-            class_groups[classify_group_by_base(parent)].append((name, parent))
+            class_groups[classify_group_by_base(parent)].append((name, parent, attributes, methods))
         for group, class_list in class_groups.items():
             f.write(f'package "{group}" <<UnrealGroup>> {{\n')
             for item in class_list:
                 name = item[0]
                 parent = item[1]
+                attributes = item[2] if len(item) > 2 else []
+                methods = item[3] if len(item) > 3 else []
                 stereotype = 'UnrealClass'
                 f.write(f'  class {name} <<{stereotype}>> {{\n')
-                # (Opcional: atributos e métodos)
+                for attr_type, attr_name in attributes:
+                    # Remove modificadores de acesso (public, protected, private) do início do tipo
+                    attr_type_clean = re.sub(r'^(public|protected|private)\s*:?', '', attr_type)
+                    attr_type_clean = attr_type_clean.replace(':', '').strip()
+                    f.write(f'    {attr_type_clean} {attr_name}\n')
+                for return_type, method_name, params in methods:
+                    return_type_clean = re.sub(r'^(public|protected|private)\s*:?', '', return_type)
+                    return_type_clean = return_type_clean.replace(':', '').strip()
+                    # Remove construtores com public: no nome do método
+                    method_name_clean = re.sub(r'^(public|protected|private)\s*:?', '', method_name, flags=re.IGNORECASE).replace(':', '').strip()
+                    f.write(f'    {return_type_clean} {method_name_clean}({params.strip()})\n')
                 f.write('  }\n')
             f.write('}\n')
 
