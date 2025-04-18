@@ -2,16 +2,16 @@
 
 ## Overview
 
-Uuml is a cross-platform visual application for automatically generating UML diagrams from C++, C# (Unity), Python, Unreal Engine, and other projects. Ideal for visualizing, documenting, and quickly understanding the architecture of any project.
+Uuml is a cross-platform visual application for automatically generating UML diagrams from C++, C# (Unity and pure), Python, Go, Unreal Engine, and more. Ideal for visualizing, documenting, and quickly understanding the architecture of any project.
 
 ---
 
 ## Key Features
 
-- Support for multiple languages: C++, C++ Unreal Engine, C#, C# Unity, Python, Java (coming soon)
+- Support for multiple languages: C++, C++ Unreal Engine, C#, C# Unity, C# puro, Python, Go, Java (coming soon)
 - Automatic extraction of classes, methods, attributes, structs, enums, and interfaces
 - Intelligent grouping by package, stereotype, or module, with vivid colors
-- Modern (dark) visual style, white text, colored borders, clear arrows, and optimized layout
+- Modern (dark) visual style, white or black text (depending on theme), colored borders, clear arrows, and optimized layout
 - No duplicate classes or naming conflicts
 - Real-time progress and error logging
 - One-click export to `.puml` and `.svg`
@@ -26,9 +26,10 @@ Uuml is a cross-platform visual application for automatically generating UML dia
 |------------------------------|:--------------:|:---------------:|------------------------------------------------|:--------------:|
 | C++                          |                |                 |                                                |       ✔️       |
 | C++ for Unreal Engine        |      ✔️        |       ✔️        | UCLASS/UFUNCTION/UPROPERTY detection           |                |
-| C#                           |                |                 |                                                |       ✔️       |
+| C# (puro)                    |      ✔️        |       ✔️        | Pure C# support, full class/interface parsing   |                |
 | C# for Unity                 |      ✔️        |       ✔️        | MonoBehaviour/ScriptableObject groups          |                |
 | Python                       |      ✔️        |       ✔️        | Grouped by module, colored packages, <<PythonClass>> stereotype |                |
+| Go                           |      ✔️        |       ✔️        | Structs, interfaces, methods, package grouping  |                |
 | Java                         |                |                 |                                                |       ✔️       |
 | Blueprint for Unreal Engine  |                |                 |                                                |       ✔️       |
 
@@ -36,11 +37,9 @@ Uuml is a cross-platform visual application for automatically generating UML dia
 
 ## Visual Style
 
-- The generated UML diagrams use PlantUML's rendering engine, with some custom colors and grouping applied via `skinparam`.
+- The generated UML diagrams use PlantUML's rendering engine, with custom colors and grouping applied via `skinparam`.
 - Classes and packages may be grouped and colored by stereotype, module, or language (e.g., <<PythonClass>>, <<CppModule>>, <<MonoBehaviour>>).
-- Some elements may have custom borders or background colors, but the overall appearance depends on PlantUML's theme and rendering.
-- There is no in-app "dark mode" UI; the "modern" look refers to the diagram output as styled by PlantUML.
-- Not all languages or elements use vivid colors; grouping and coloring are primarily for classes by stereotype or module.
+- Modern dark background, black text inside boxes, neon/glow arrows for high contrast.
 - The final look of the diagrams may vary depending on PlantUML version and user settings.
 
 ---
@@ -48,9 +47,8 @@ Uuml is a cross-platform visual application for automatically generating UML dia
 ## How to Use
 
 1. Install **Java 17+** (required to render PlantUML)
-2. Install **Python 3.9+** (if using scripts)
-3. Install the Python package:
-   - `tkinter`
+2. Install **Python 3.9+**
+3. Install the Python package: `tkinter`
 4. Download or clone this repository
 5. Go to the `src` folder
 6. Run `UumlCentralApp.py` (or the `.exe` executable)
@@ -64,6 +62,8 @@ It is also possible to generate diagrams via terminal:
 ```bash
 python src/UumlCentralApp.py --project path/to/UnrealProject --type cpp4ue
 python src/UumlCentralApp.py --project path/to/UnityProject --type unity
+python src/UumlCentralApp.py --project path/to/CSharpProject --type csharp
+python src/UumlCentralApp.py --project path/to/GoProject --type go
 python src/UumlCentralApp.py --project path/to/PythonProject --type python
 ```
 
@@ -79,8 +79,12 @@ python src/UumlCentralApp.py --project path/to/PythonProject --type python
 /Uuml
   /src
     UumlCentralApp.py
+    CSharpUML.py
     CSharpForUnity.py
     CPPForUnrealEngine.py
+    CPPGenericUML.py
+    GoUML.py
+    SVGRenderer.py
     # ...other modules
     plantuml.jar
     unrealuml_icon.ico
@@ -105,8 +109,9 @@ python src/UumlCentralApp.py --project path/to/PythonProject --type python
 To create a standalone executable (Windows) with all Python modules embedded, run the following command from the `src` directory:
 
 ```powershell
-python -m PyInstaller --onefile --add-data "plantuml.jar;." --hidden-import=CPPForUnrealEngine --hidden-import=CSharpForUnity --hidden-import=CPPGenericUML UumlCentralApp.py
+python -m PyInstaller --onefile --icon=UumlCentralApp.ico --add-data "plantuml.jar;." --hidden-import=CPPForUnrealEngine --hidden-import=CSharpForUnity --hidden-import=CPPGenericUML --hidden-import=CSharpUML --hidden-import=GoUML UumlCentralApp.py
 ```
+
 - The executable will be created in `src/dist/UumlCentralApp.exe`.
 - Place `plantuml.jar` in the same folder as the executable for PlantUML export.
 - Run the executable from the command line or use the provided `.bat` script to pass parameters.
@@ -115,7 +120,7 @@ python -m PyInstaller --onefile --add-data "plantuml.jar;." --hidden-import=CPPF
 
 ## Current Features
 
-- Support for C++, C++ Unreal Engine, C# (Unity), Python
+- Support for C++, C++ Unreal Engine, C# (Unity and puro), Python, Go
 - Automatic generation of classes, methods, attributes, structs, enums, and interfaces
 - Intelligent visual grouping by package, stereotype, or module
 - Modern visual style, diagrams ready for documentation
