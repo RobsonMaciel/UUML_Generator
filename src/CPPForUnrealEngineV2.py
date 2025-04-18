@@ -243,36 +243,44 @@ def main(project_dir):
 def generate_puml_from_json(uml_json):
     """
     Gera PUML dinâmico a partir do JSON UML real, agrupando e colorindo por estereótipo/tipo.
+    Classes sem relação são agrupadas em 'Others'.
     """
     def clean_relation_target(name):
-        # Remove visibilidade e espaços extras do alvo da relação
-        return re.sub(r'^(public|protected|private)\\s+:?', '', name, flags=re.IGNORECASE).strip()
+        return re.sub(r'^(public|protected|private)\s*:?', '', name, flags=re.IGNORECASE).strip()
 
-    # Coleta todas as classes/interfaces/enums/structs
     classes = uml_json.get('classes', [])
     interfaces = uml_json.get('interfaces', [])
     enums = uml_json.get('enums', [])
-    structs = [c for c in classes if c.get('type') == 'struct']
-    # Determina estereótipos/tipos
     all_items = []
+    name_to_item = {}
     for c in classes:
         st = c.get('type', 'Class').capitalize()
-        all_items.append({'name': c['name'], 'stereotype': st, 'fields': [f"+{a['name']} : {a['type']}" for a in c.get('attributes', [])], 'methods': [f"+{m['name']}({m.get('params','')}) : {m['type']}" for m in c.get('methods', [])]})
+        item = {'name': c['name'], 'stereotype': st, 'fields': [f"+{a['name']} : {a['type']}" for a in c.get('attributes', [])], 'methods': [f"+{m['name']}({m.get('params','')}) : {m['type']}" for m in c.get('methods', [])]}
+        all_items.append(item)
+        name_to_item[c['name']] = item
     for i in interfaces:
-        all_items.append({'name': i['name'], 'stereotype': 'Interface', 'fields': [], 'methods': [f"+{m['name']}({m.get('params','')}) : {m['type']}" for m in i.get('methods', [])]})
+        item = {'name': i['name'], 'stereotype': 'Interface', 'fields': [], 'methods': [f"+{m['name']}({m.get('params','')}) : {m['type']}" for m in i.get('methods', [])]}
+        all_items.append(item)
+        name_to_item[i['name']] = item
     for e in enums:
-        all_items.append({'name': e['name'], 'stereotype': 'Enum', 'fields': e.get('values', []), 'methods': []})
-    # Relações (simplificado: só herança e implements)
+        item = {'name': e['name'], 'stereotype': 'Enum', 'fields': e.get('values', []), 'methods': []}
+        all_items.append(item)
+        name_to_item[e['name']] = item
+    # Relações (herança, implements, associação)
     relations = []
+    related_names = set()
     for c in classes:
         for rel in c.get('relations', []):
             target = clean_relation_target(rel['target'])
+            src = c['name']
             if rel['type'] == 'extends':
-                relations.append((c['name'], target, '<|--', 'inherits'))
+                relations.append((src, target, '<|--', 'inherits'))
             elif rel['type'] == 'implements':
-                relations.append((c['name'], target, '..|>', 'implements'))
+                relations.append((src, target, '..|>', 'implements'))
             elif rel['type'] == 'association':
-                relations.append((c['name'], target, '-->', rel.get('label','assoc')))
+                relations.append((src, target, '-->', rel.get('label','assoc')))
+            related_names.add(src)
+            related_names.add(target)
     # 1. Descobrir todos os estereótipos únicos
     stereotypes = sorted(set(item['stereotype'] for item in all_items))
     # 2. Gerar cores automaticamente (paleta pastel)
@@ -284,23 +292,40 @@ def generate_puml_from_json(uml_json):
     skinparam = '\n'.join([
         f'  BackgroundColor<<{st}>> {color}' for st, color in colors.items()
     ])
-    # 4. Agrupar por estereótipo
+    # 4. Agrupar por estereótipo, exceto Others
     puml = ["@startuml", "", "' Definição de cores dinâmica por estereótipo", f"skinparam class {{\n{skinparam}\n}}", ""]
     for st in stereotypes:
+        items = [item for item in all_items if item['stereotype'] == st and item['name'] in related_names]
+        if not items:
+            continue
         puml.append(f"package \"{st}s\" <<Rectangle>> {{")
-        for item in all_items:
-            if item['stereotype'] == st:
-                kind = 'struct' if st.lower() == 'struct' else ('interface' if st.lower() == 'interface' else ('enum' if st.lower() == 'enum' else 'class'))
-                stereotype_tag = f"<<{st}>>"
-                puml.append(f"  {kind} {item['name']} {stereotype_tag} {{")
-                for f in item['fields']:
-                    puml.append(f"    {f}")
-                for m in item['methods']:
-                    puml.append(f"    {m}")
-                puml.append("  }")
+        for item in items:
+            kind = 'struct' if st.lower() == 'struct' else ('interface' if st.lower() == 'interface' else ('enum' if st.lower() == 'enum' else 'class'))
+            stereotype_tag = f"<<{st}>>"
+            puml.append(f"  {kind} {item['name']} {stereotype_tag} {{")
+            for f in item['fields']:
+                puml.append(f"    {f}")
+            for m in item['methods']:
+                puml.append(f"    {m}")
+            puml.append("  }")
         puml.append("}")
         puml.append("")
-    # 5. Relações
+    # 5. Agrupar Others (sem relação)
+    others = [item for item in all_items if item['name'] not in related_names]
+    if others:
+        puml.append('package "Others" <<Rectangle>> {')
+        for item in others:
+            kind = 'struct' if item['stereotype'].lower() == 'struct' else ('interface' if item['stereotype'].lower() == 'interface' else ('enum' if item['stereotype'].lower() == 'enum' else 'class'))
+            stereotype_tag = f"<<{item['stereotype']}>>"
+            puml.append(f"  {kind} {item['name']} {stereotype_tag} {{")
+            for f in item['fields']:
+                puml.append(f"    {f}")
+            for m in item['methods']:
+                puml.append(f"    {m}")
+            puml.append("  }")
+        puml.append('}')
+        puml.append("")
+    # 6. Relações
     puml.append("' --- Relações ---")
     for src, tgt, arrow, label in relations:
         puml.append(f"{src} {arrow} {tgt} : {label}")
