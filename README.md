@@ -41,12 +41,11 @@
 1. Make sure you have **Java 17+** installed.
 2. Go to the `src` folder. All code, the executable, icon, and `plantuml.jar` are there.
 3. Run `UumlCentralApp.py` (or the compiled `.exe`).
-4. The app will:
-   - Detect your `CodeExamples` folder (with Unreal C++ headers for testing)
-   - Generate `.puml` based on Unreal C++ headers
-   - Clean the `.puml` file
-   - Render `.svg` with PlantUML
-   - Open the final SVG automatically
+4. **A modern interface will open, allowing you to choose the project root and select the target language for UML generation.**
+   - The app will attempt to auto-detect the language (C#, Java, C++, C++ for Unreal, C# for Unity, Python, etc.).
+   - If not detected, you can select manually.
+5. After selecting the language, the app will recursively scan the chosen root folder and generate the `.puml` and `.svg` files using the respective script for that language.
+6. The final SVG will open automatically.
 
 ## ⚙️ Requirements
 
@@ -65,6 +64,7 @@
   /src
     UumlCentralApp.py
     CPPForUnrealEngine.py
+    # (future) CSharpDotNet.py, Java.py, etc.
     unrealuml_icon.ico
     plantuml.jar
   /CodeExamples
@@ -72,17 +72,10 @@
   README.md, LICENSE, etc.
 ```
 
-## 📥 How to Get `plantuml.jar`
-
-You can download the latest version of PlantUML from:
-https://plantuml.com/download
-
-Place the `plantuml.jar` file inside the `src` folder.
-
 ## 📝 Notes
 
 - All Python and executable files are now inside the `src` directory for better organization.
-- Todos os arquivos Python agora seguem o padrão de nomes por linguagem, por exemplo: `CPPForUnrealEngine.py`, facilitando a expansão para novas linguagens.
+- **The application now features a language selection interface, supporting multi-language UML generation workflows.**
 - Example Unreal Engine C++ headers for testing are in `CodeExamples`.
 - The project is ready for packaging and distribution as a single .exe with a custom icon.
 
@@ -90,12 +83,14 @@ Place the `plantuml.jar` file inside the `src` folder.
 
 ## 📗 Versão em Português
 
-**Uuml** é uma aplicação visual moderna feita em Python com `customtkinter`, que gera automaticamente diagramas UML a partir de projetos Unreal Engine em C++.
+**Uuml** é uma aplicação visual moderna feita em Python com `customtkinter`, que gera automaticamente diagramas UML a partir de projetos Unreal Engine em C++ ou outros stacks suportados.
 
 ## 🔧 Funcionalidades
 
 - Interface com botão "Gerar Tudo" e área de log ao vivo.
 - Detecção automática da pasta `CodeExamples`.
+- **Nova tela para seleção de linguagem (C#, Java, C++, C++ for Unreal, C# for Unity, Python, etc), com detecção automática ou escolha manual.**
+- Pipeline modular para fácil expansão para novas linguagens.
 - Extração de:
   - **Classes** (`UCLASS`)
   - **Métodos** (`UFUNCTION`)
@@ -125,18 +120,11 @@ Place the `plantuml.jar` file inside the `src` folder.
 1. Instale o Java 17+.
 2. Vá para a pasta `src`. Todos os arquivos de código, executável, ícone e `plantuml.jar` estão lá.
 3. Execute `UumlCentralApp.py` (ou o compilado `.exe`).
-4. O app irá:
-   - Detectar a pasta `CodeExamples` (com headers C++ do Unreal Engine para teste)
-   - Gerar `.puml` com base nos headers C++ do Unreal Engine
-   - Limpar o arquivo `.puml`
-   - Renderizar `.svg` com PlantUML
-   - Abrir o diagrama final no navegador automaticamente
-
-## 📦 Empacotamento
-
-```bash
-python -m PyInstaller --onefile --noconsole --icon=unrealuml_icon.ico UumlCentralApp.py
-```
+4. **Uma interface moderna abrirá, permitindo escolher a raiz do projeto e selecionar a linguagem alvo para geração de UML.**
+   - O app tentará detectar automaticamente a linguagem (C#, Java, C++, C++ for Unreal, C# for Unity, Python, etc.).
+   - Se não detectado, você pode selecionar manualmente.
+5. Após selecionar a linguagem, o app irá escanear recursivamente a pasta raiz escolhida e gerar os arquivos `.puml` e `.svg` usando o script respectivo para aquela linguagem.
+6. O diagrama final abrirá automaticamente.
 
 ## 👤 Autor
 

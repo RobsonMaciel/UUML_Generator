@@ -39,18 +39,25 @@ class MainApp(ctk.CTk):
         self.project_path_label.pack(pady=(0, 6))
         self.language_frame = ctk.CTkFrame(self)
         self.language_frame.pack(pady=10)
-        self.lang_buttons = []
         ctk.CTkLabel(self.language_frame, text="Select language (if not auto-detected):").pack(pady=(0, 6))
-        for lang, _ in LANGUAGES:
-            btn = ctk.CTkButton(self.language_frame, text=lang, command=lambda l=lang: self.select_language(l))
-            btn.pack(side="left", padx=5)
-            self.lang_buttons.append(btn)
+        # Substitui botões por dropdown
+        self.language_options = [lang for lang, _ in LANGUAGES]
+        self.language_dropdown = ctk.CTkOptionMenu(
+            self.language_frame,
+            values=self.language_options,
+            variable=self.language_var,
+            command=self.select_language
+        )
+        self.language_dropdown.pack(pady=(0, 6))
         self.detect_btn = ctk.CTkButton(self, text="Detect Project Type Automatically", command=self.detect_language)
         self.detect_btn.pack(pady=(10, 0))
         self.folder_btn = ctk.CTkButton(self, text="Choose Root Folder", command=self.choose_folder)
         self.folder_btn.pack(pady=(10, 0))
         self.run_btn = ctk.CTkButton(self, text="Generate UML", command=self.run_pipeline, state="disabled")
         self.run_btn.pack(pady=(20, 0))
+        # Terminal/log textbox
+        self.log_box = ctk.CTkTextbox(self, width=580, height=120, wrap="word")
+        self.log_box.pack(padx=10, pady=(10, 0), fill="both", expand=False)
         self.status_label = ctk.CTkLabel(self, textvariable=self.status_var)
         self.status_label.pack(side="bottom", pady=10)
 
@@ -104,15 +111,23 @@ class MainApp(ctk.CTk):
         likely = max(ext_count, key=lambda k: ext_count[k])
         return likely if ext_count[likely] > 0 else None
 
+    def log(self, text):
+        self.log_box.insert("end", text + "\n")
+        self.log_box.see("end")
+
     def run_pipeline(self):
         lang = self.selected_language
         folder = self.root_folder
         self.status_var.set(f"Running UML generation for {lang} in {folder}...")
+        self.run_btn.configure(state="disabled")
+        self.log_box.delete("1.0", "end")
+        self.log(f"[UML] Running UML generation for {lang} in {folder}...")
         self.update()
         import subprocess
         import sys
         script_map = {
             "C++ for Unreal": "CPPForUnrealEngine.py",
+            "C# for Unity": "CSharpForUnity.py",
             # Futuramente: "C#": "CSharpDotNet.py", "Java": "Java.py", etc.
         }
         script_name = script_map.get(lang)
@@ -120,18 +135,30 @@ class MainApp(ctk.CTk):
             script_path = os.path.join(os.path.dirname(__file__), script_name)
             if not os.path.isfile(script_path):
                 self.status_var.set(f"Script for {lang} not found: {script_path}")
+                self.log(f"[ERROR] Script for {lang} not found: {script_path}")
+                self.run_btn.configure(state="normal")
                 return
             try:
                 # Passa o root folder como argumento para o script
-                result = subprocess.run([sys.executable, script_path, folder], cwd=os.path.dirname(script_path), capture_output=True, text=True)
-                if result.returncode == 0:
+                process = subprocess.Popen([sys.executable, script_path, folder], cwd=os.path.dirname(script_path), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+                for line in process.stdout:
+                    self.log(line.rstrip())
+                    self.update()
+                process.wait()
+                if process.returncode == 0:
                     self.status_var.set(f"UML generation for {lang} completed.")
+                    self.log(f"[SUCCESS] UML generation for {lang} completed.")
                 else:
-                    self.status_var.set(f"Error running {script_name}: {result.stderr}")
+                    self.status_var.set(f"Error running {script_name}")
+                    self.log(f"[ERROR] Error running {script_name}")
             except Exception as e:
                 self.status_var.set(f"Failed to run {script_name}: {e}")
+                self.log(f"[ERROR] Failed to run {script_name}: {e}")
+            self.run_btn.configure(state="normal")
         else:
             self.status_var.set(f"UML generation for {lang} is not implemented yet.")
+            self.log(f"[ERROR] UML generation for {lang} is not implemented yet.")
+            self.run_btn.configure(state="normal")
 
 if __name__ == "__main__":
     app = MainApp()
