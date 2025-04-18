@@ -309,13 +309,17 @@ def generate_puml_from_json(uml_json, project_dir=None):
         f'  BackgroundColor<<{st}>> {color}' for st, color in colors.items()
     ])
     skinparam += '\n  Shadowing true\n  ArrowColor #FF4500\n  ArrowThickness 2\n  ArrowFontColor #222\n'
+    skinparam += '  nodesep 80\n  ranksep 80\n'  # Maior espaçamento vertical e horizontal
     # 4. Header do diagrama
     puml = ["@startuml", ""]
+    # Forçar layout mais vertical
+    puml.append("top to bottom direction")  
     if project_name or unreal_version:
         title = f"{project_name or ''} (Unreal Engine {unreal_version or ''})".strip()
-        puml.append(f"title {title}")
+        # Aumentar fonte do título
+        puml.append(f"title <size:24>{title}</size>")
         puml.append("")
-    puml.append("' Definição de cores dinâmica por estereótipo, sombra e setas vivas")
+    puml.append("' Definição de cores dinâmica por estereótipo, sombra, espaçamento e setas vivas")
     puml.append(f"skinparam class {{\n{skinparam}\n}}\n")
     # 4b. Caixa fictícia de Plugins
     if plugins:
@@ -324,23 +328,31 @@ def generate_puml_from_json(uml_json, project_dir=None):
             puml.append(f"  {pl}")
         puml.append('}')
         puml.append("")
-    # 5. Agrupar por estereótipo, exceto Others
+    # 5. Agrupar por estereótipo E prefixo de nome
+    import collections
+    def get_prefix(name):
+        return name[0] if name and name[0].isalpha() else '_'
     for st in stereotypes:
-        items = [item for item in all_items if item['stereotype'] == st and item['name'] in related_names]
-        if not items:
+        items_by_prefix = collections.defaultdict(list)
+        for item in all_items:
+            if item['stereotype'] == st and item['name'] in related_names:
+                prefix = get_prefix(item['name'])
+                items_by_prefix[prefix].append(item)
+        if not items_by_prefix:
             continue
-        puml.append(f"package \"{st}s\" <<Rectangle>> {{")
-        for item in items:
-            kind = 'struct' if st.lower() == 'struct' else ('interface' if st.lower() == 'interface' else ('enum' if st.lower() == 'enum' else 'class'))
-            stereotype_tag = f"<<{st}>>"
-            puml.append(f"  {kind} {item['name']} {stereotype_tag} {{")
-            for f in item['fields']:
-                puml.append(f"    {f}")
-            for m in item['methods']:
-                puml.append(f"    {m}")
-            puml.append("  }")
-        puml.append("}")
-        puml.append("")
+        for prefix, items in sorted(items_by_prefix.items()):
+            puml.append(f"package \"{st}s - {prefix}*\" <<Rectangle>> {{")
+            for item in items:
+                kind = 'struct' if st.lower() == 'struct' else ('interface' if st.lower() == 'interface' else ('enum' if st.lower() == 'enum' else 'class'))
+                stereotype_tag = f"<<{st}>>"
+                puml.append(f"  {kind} {item['name']} {stereotype_tag} {{")
+                for f in item['fields']:
+                    puml.append(f"    {f}")
+                for m in item['methods']:
+                    puml.append(f"    {m}")
+                puml.append("  }")
+            puml.append("}")
+            puml.append("")
     # 6. Agrupar Others (sem relação)
     others = [item for item in all_items if item['name'] not in related_names]
     if others:
@@ -356,7 +368,7 @@ def generate_puml_from_json(uml_json, project_dir=None):
             puml.append("  }")
         puml.append('}')
         puml.append("")
-    # 7. Relações (setas coloridas customizadas)
+    # 7. Relações (setas coloridas customizadas, rótulo destacado)
     puml.append("' --- Relações ---")
     arrow_colors = {
         '<|--': '#FF4500;line.bold', # Laranja vivo, herança
@@ -365,7 +377,7 @@ def generate_puml_from_json(uml_json, project_dir=None):
     }
     for src, tgt, arrow, label in relations:
         color = arrow_colors.get(arrow, '#FF4500')
-        puml.append(f"{src} {arrow} {tgt} : <color:{color}>{label}</color>")
+        puml.append(f"{src} {arrow} {tgt} : <b><size:16><color:{color}>{label}</color></size></b>")
     puml.append("\n@enduml")
     return '\n'.join(puml)
 
