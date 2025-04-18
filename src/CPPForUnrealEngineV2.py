@@ -300,9 +300,13 @@ def generate_puml_from_json(uml_json, project_dir=None):
     # --- Detectar entidades reais e referências externas ---
     real_entities = set(item['name'] for item in all_items)
     referenced_targets = set()
+    class_to_external_refs = defaultdict(set)
     for c in classes:
         for rel in c.get('relations', []):
-            referenced_targets.add(clean_relation_target(rel['target']))
+            target = clean_relation_target(rel['target'])
+            referenced_targets.add(target)
+            if target not in real_entities:
+                class_to_external_refs[c['name']].add(target)
     only_referenced = referenced_targets - real_entities
 
     # 1. Descobrir todos os estereótipos únicos
@@ -358,6 +362,11 @@ def generate_puml_from_json(uml_json, project_dir=None):
                     puml.append(f"    {f}")
                 for m in item['methods']:
                     puml.append(f"    {m}")
+                # Adiciona referências externas, se houver
+                refs = class_to_external_refs.get(item['name'])
+                if refs:
+                    puml.append("    --")
+                    puml.append(f"    <<References: {', '.join(sorted(refs))}>>")
                 puml.append("  }")
             puml.append("}")
             puml.append("")
@@ -376,13 +385,6 @@ def generate_puml_from_json(uml_json, project_dir=None):
             puml.append("  }")
         puml.append('}')
         puml.append("")
-    # 7. Agrupar referências externas
-    if only_referenced:
-        puml.append('package "External References" <<Rectangle>> {')
-        for ref in sorted(only_referenced):
-            puml.append(f'  class {ref} <<ExternalReference>>')
-        puml.append('}')
-        puml.append("")
     # 8. Relações (setas coloridas customizadas, rótulo destacado)
     puml.append("' --- Relações ---")
     arrow_colors = {
@@ -391,6 +393,8 @@ def generate_puml_from_json(uml_json, project_dir=None):
         '-->': '#32CD32;line.bold', # Verde vivo, associação
     }
     for src, tgt, arrow, label in relations:
+        if tgt in only_referenced:
+            continue  # Não desenha seta para referência externa
         color = arrow_colors.get(arrow, '#FF4500')
         puml.append(f"{src} {arrow} {tgt} : <b><size:16><color:{color}>{label}</color></size></b>")
     puml.append("\n@enduml")
