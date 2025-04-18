@@ -24,7 +24,7 @@ Uuml is a cross-platform visual application for automatically generating UML dia
 
 | Language                     | Grouping/Color | Methods & Props | Special Features                                | Planned/Future |
 |------------------------------|:--------------:|:---------------:|------------------------------------------------|:--------------:|
-| C++                          |                |                 |                                                |       ✔️       |
+| C++                          |      ✔️        |       ✔️        | Standard C++ support, class/struct/enum parsing |                |
 | C++ for Unreal Engine        |      ✔️        |       ✔️        | UCLASS/UFUNCTION/UPROPERTY detection           |                |
 | C# (puro)                    |      ✔️        |       ✔️        | Pure C# support, full class/interface parsing   |                |
 | C# for Unity                 |      ✔️        |       ✔️        | MonoBehaviour/ScriptableObject groups          |                |
