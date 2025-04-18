@@ -215,7 +215,7 @@ def main(project_dir):
 
     # Gerar PUML dinâmico a partir do JSON real
     print("\n[UML V2] PUML GERADO DINAMICAMENTE A PARTIR DO JSON:\n")
-    puml = generate_puml_from_json(uml_json)
+    puml = generate_puml_from_json(uml_json, project_dir)
     print(puml)
 
     # Salvar PUML em arquivo
@@ -240,13 +240,29 @@ def main(project_dir):
         print(f"[UML V2] SVG não encontrado: {svg_path}")
 
 
-def generate_puml_from_json(uml_json):
+def generate_puml_from_json(uml_json, project_dir=None):
     """
     Gera PUML dinâmico a partir do JSON UML real, agrupando e colorindo por estereótipo/tipo.
     Classes sem relação são agrupadas em 'Others'.
+    Setas coloridas vivas e caixas com sombra.
+    Adiciona título com nome do projeto e versão da Unreal, e uma classe fictícia com plugins utilizados.
     """
     def clean_relation_target(name):
         return re.sub(r'^(public|protected|private)\s*:?', '', name, flags=re.IGNORECASE).strip()
+
+    # --- Lê .uproject se disponível ---
+    project_name = None
+    unreal_version = None
+    plugins = []
+    if project_dir:
+        import glob
+        up_files = glob.glob(os.path.join(project_dir, '*.uproject'))
+        if up_files:
+            with open(up_files[0], 'r', encoding='utf-8') as f:
+                upjson = json.load(f)
+            project_name = upjson.get('Modules', [{}])[0].get('Name')
+            unreal_version = upjson.get('EngineAssociation')
+            plugins = [p['Name'] for p in upjson.get('Plugins', []) if p.get('Enabled')]
 
     classes = uml_json.get('classes', [])
     interfaces = uml_json.get('interfaces', [])
@@ -292,8 +308,23 @@ def generate_puml_from_json(uml_json):
     skinparam = '\n'.join([
         f'  BackgroundColor<<{st}>> {color}' for st, color in colors.items()
     ])
-    # 4. Agrupar por estereótipo, exceto Others
-    puml = ["@startuml", "", "' Definição de cores dinâmica por estereótipo", f"skinparam class {{\n{skinparam}\n}}", ""]
+    skinparam += '\n  Shadowing true\n  ArrowColor #FF4500\n  ArrowThickness 2\n  ArrowFontColor #222\n'
+    # 4. Header do diagrama
+    puml = ["@startuml", ""]
+    if project_name or unreal_version:
+        title = f"{project_name or ''} (Unreal Engine {unreal_version or ''})".strip()
+        puml.append(f"title {title}")
+        puml.append("")
+    puml.append("' Definição de cores dinâmica por estereótipo, sombra e setas vivas")
+    puml.append(f"skinparam class {{\n{skinparam}\n}}\n")
+    # 4b. Caixa fictícia de Plugins
+    if plugins:
+        puml.append('class "Plugins Used" as PluginsUsed <<(P,orchid)>> {')
+        for pl in plugins:
+            puml.append(f"  {pl}")
+        puml.append('}')
+        puml.append("")
+    # 5. Agrupar por estereótipo, exceto Others
     for st in stereotypes:
         items = [item for item in all_items if item['stereotype'] == st and item['name'] in related_names]
         if not items:
@@ -310,7 +341,7 @@ def generate_puml_from_json(uml_json):
             puml.append("  }")
         puml.append("}")
         puml.append("")
-    # 5. Agrupar Others (sem relação)
+    # 6. Agrupar Others (sem relação)
     others = [item for item in all_items if item['name'] not in related_names]
     if others:
         puml.append('package "Others" <<Rectangle>> {')
@@ -325,10 +356,16 @@ def generate_puml_from_json(uml_json):
             puml.append("  }")
         puml.append('}')
         puml.append("")
-    # 6. Relações
+    # 7. Relações (setas coloridas customizadas)
     puml.append("' --- Relações ---")
+    arrow_colors = {
+        '<|--': '#FF4500;line.bold', # Laranja vivo, herança
+        '..|>': '#1E90FF;line.dashed', # Azul vivo, implements
+        '-->': '#32CD32;line.bold', # Verde vivo, associação
+    }
     for src, tgt, arrow, label in relations:
-        puml.append(f"{src} {arrow} {tgt} : {label}")
+        color = arrow_colors.get(arrow, '#FF4500')
+        puml.append(f"{src} {arrow} {tgt} : <color:{color}>{label}</color>")
     puml.append("\n@enduml")
     return '\n'.join(puml)
 
