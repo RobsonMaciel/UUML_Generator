@@ -215,23 +215,23 @@ def main(project_dir):
 
     # Gerar PUML dinâmico a partir do JSON real
     print("\n[UML V2] PUML GERADO DINAMICAMENTE A PARTIR DO JSON:\n")
-    mock_puml = generate_dynamic_puml_from_json(uml_json)
-    print(mock_puml)
+    puml = generate_puml_from_json(uml_json)
+    print(puml)
 
     # Salvar PUML em arquivo
-    mock_puml_path = os.path.join(project_dir, 'UML_MockTest.puml')
-    with open(mock_puml_path, 'w', encoding='utf-8') as pf:
-        pf.write(mock_puml)
-    print(f"[UML V2] PUML de teste salvo em: {mock_puml_path}")
+    puml_path = os.path.join(project_dir, 'UML_ClassDiagram.puml')
+    with open(puml_path, 'w', encoding='utf-8') as pf:
+        pf.write(puml)
+    print(f"[UML V2] PUML salvo em: {puml_path}")
 
     # Gerar SVG a partir do PUML
     plantuml_jar_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'plantuml.jar'))
-    svg_cmd = f'java -jar "{plantuml_jar_path}" -tsvg "{mock_puml_path}"'
+    svg_cmd = f'java -jar "{plantuml_jar_path}" -tsvg "{puml_path}"'
     print(f"[UML V2] Gerando SVG com: {svg_cmd}")
     os.system(svg_cmd)
 
     # Abrir SVG automaticamente (se possível)
-    svg_path = mock_puml_path.replace('.puml', '.svg')
+    svg_path = puml_path.replace('.puml', '.svg')
     if os.path.exists(svg_path):
         print(f"[UML V2] Abrindo SVG: {svg_path}")
         import webbrowser
@@ -240,7 +240,7 @@ def main(project_dir):
         print(f"[UML V2] SVG não encontrado: {svg_path}")
 
 
-def generate_dynamic_puml_from_json(uml_json):
+def generate_puml_from_json(uml_json):
     """
     Gera PUML dinâmico a partir do JSON UML real, agrupando e colorindo por estereótipo/tipo.
     """
