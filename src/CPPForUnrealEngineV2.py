@@ -297,6 +297,14 @@ def generate_puml_from_json(uml_json, project_dir=None):
                 relations.append((src, target, '-->', rel.get('label','assoc')))
             related_names.add(src)
             related_names.add(target)
+    # --- Detectar entidades reais e referências externas ---
+    real_entities = set(item['name'] for item in all_items)
+    referenced_targets = set()
+    for c in classes:
+        for rel in c.get('relations', []):
+            referenced_targets.add(clean_relation_target(rel['target']))
+    only_referenced = referenced_targets - real_entities
+
     # 1. Descobrir todos os estereótipos únicos
     stereotypes = sorted(set(item['stereotype'] for item in all_items))
     # 2. Gerar cores automaticamente (paleta pastel)
@@ -309,14 +317,14 @@ def generate_puml_from_json(uml_json, project_dir=None):
         f'  BackgroundColor<<{st}>> {color}' for st, color in colors.items()
     ])
     skinparam += '\n  Shadowing true\n  ArrowColor #FF4500\n  ArrowThickness 2\n  ArrowFontColor #222\n'
-    skinparam += '  nodesep 80\n  ranksep 80\n'  # Maior espaçamento vertical e horizontal
+    skinparam += '  nodesep 80\n  ranksep 80\n'
+    skinparam += '  BackgroundColor<<ExternalReference>> #E0E0E0\n  BorderColor<<ExternalReference>> #888\n  FontColor<<ExternalReference>> #666\n  FontStyle<<ExternalReference>> italic\n'
+
     # 4. Header do diagrama
     puml = ["@startuml", ""]
-    # Forçar layout mais vertical
-    puml.append("top to bottom direction")  
+    puml.append("top to bottom direction")  # Força layout vertical
     if project_name or unreal_version:
         title = f"{project_name or ''} (Unreal Engine {unreal_version or ''})".strip()
-        # Aumentar fonte do título
         puml.append(f"title <size:24>{title}</size>")
         puml.append("")
     puml.append("' Definição de cores dinâmica por estereótipo, sombra, espaçamento e setas vivas")
@@ -368,7 +376,14 @@ def generate_puml_from_json(uml_json, project_dir=None):
             puml.append("  }")
         puml.append('}')
         puml.append("")
-    # 7. Relações (setas coloridas customizadas, rótulo destacado)
+    # 7. Agrupar referências externas
+    if only_referenced:
+        puml.append('package "External References" <<Rectangle>> {')
+        for ref in sorted(only_referenced):
+            puml.append(f'  class {ref} <<ExternalReference>>')
+        puml.append('}')
+        puml.append("")
+    # 8. Relações (setas coloridas customizadas, rótulo destacado)
     puml.append("' --- Relações ---")
     arrow_colors = {
         '<|--': '#FF4500;line.bold', # Laranja vivo, herança
