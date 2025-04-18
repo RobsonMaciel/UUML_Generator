@@ -44,18 +44,25 @@ def clean_params(params_str):
 # --- Unreal header parsing to UML JSON ---
 def parse_unreal_headers_to_uml_json(project_dir):
     """
-    Scans all .h headers and generates a UML-compliant JSON (PlantUML class diagram):
+    Scans all .h headers inside the Source folder and generates a UML-compliant JSON (PlantUML class diagram):
     - classes, interfaces, enums
     - ALL attributes and methods (with visibility)
     - relationships: extends (inheritance), implements (interface)
     """
+    import sys
+    source_dir = os.path.join(project_dir, 'Source')
+    if not os.path.isdir(source_dir):
+        print(f"[UML] ERROR: Could not find 'Source' folder in {project_dir}.")
+        print("[UML] Please make sure you are running this in a valid Unreal Engine project root.")
+        if getattr(sys, 'frozen', False):
+            input('Press any key to exit...')
+        sys.exit(1)
     classes = []
     interfaces = []
     enums = []
-    # First pass: collect all class names
     all_class_names = set()
     header_data = []
-    for root, dirs, files in os.walk(project_dir):
+    for root, dirs, files in os.walk(source_dir):
         for file in files:
             if file.endswith('.h'):
                 file_path = os.path.join(root, file)
@@ -64,7 +71,11 @@ def parse_unreal_headers_to_uml_json(project_dir):
                 for decl_match in re.finditer(r'class\s+(\w+)', content):
                     all_class_names.add(decl_match.group(1))
                 header_data.append((file_path, content))
-
+    if not header_data:
+        print(f"[UML] ERROR: No .h files found inside the 'Source' folder: {source_dir}")
+        if getattr(sys, 'frozen', False):
+            input('Press any key to exit...')
+        sys.exit(1)
     # Second pass: process each header normally
     for file_path, content in header_data:
         content_no_comments = re.sub(r'/\*.*?\*/', '', content, flags=re.DOTALL)

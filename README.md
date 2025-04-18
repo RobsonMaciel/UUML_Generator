@@ -102,15 +102,14 @@ python src/UumlCentralApp.py --project path/to/PythonProject --type python
 
 ## Standalone Executable
 
-To create an executable (Windows):
+To create a standalone executable (Windows) with all Python modules embedded, run the following command from the `src` directory:
 
-```bash
-pip install pyinstaller
-cd src
-pyinstaller --onefile --noconsole --icon=unrealuml_icon.ico UumlCentralApp.py
+```powershell
+python -m PyInstaller --onefile --add-data "plantuml.jar;." --hidden-import=CPPForUnrealEngine --hidden-import=CSharpForUnity --hidden-import=CPPGenericUML UumlCentralApp.py
 ```
-- The executable will be in `dist/UumlCentralApp.exe`.
-- Include `plantuml.jar` in the same folder as the executable.
+- The executable will be created in `src/dist/UumlCentralApp.exe`.
+- Place `plantuml.jar` in the same folder as the executable for PlantUML export.
+- Run the executable from the command line or use the provided `.bat` script to pass parameters.
 
 ---
 
