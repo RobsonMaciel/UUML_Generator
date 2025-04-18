@@ -2,6 +2,7 @@ import os
 import re
 import json
 from collections import defaultdict
+from SVGRenderer import render_svg
 
 """
 CPPForUnrealEngine.py

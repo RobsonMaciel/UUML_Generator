@@ -197,7 +197,7 @@ def generate_puml_from_json(uml_json, project_dir=None):
         f.write('\n'.join(puml_lines))
     return output_file
 
-from CSharpForUnity import render_svg
+from SVGRenderer import render_svg
 
 def main(project_dir):
     uml_json = parse_headers_to_uml_json(project_dir)

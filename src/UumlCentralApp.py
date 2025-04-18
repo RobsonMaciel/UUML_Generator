@@ -84,14 +84,15 @@ if __name__ == "__main__":
                 input('Pressione ENTER para sair...')
         elif tipo == "cpp":
             from CPPGenericUML import main as gen_cpp
-            from CSharpForUnity import render_svg
+            from SVGRenderer import render_svg
             print(f"[UML] Generating UML for pure C++ in {project_dir}")
             gen_cpp(project_dir)
             print("[UML] Finished!")
             if getattr(sys, 'frozen', False):
                 input('Pressione ENTER para sair...')
         elif tipo == "unity":
-            from CSharpForUnity import generate_puml as gen_unity, render_svg
+            from CSharpForUnity import generate_puml as gen_unity
+            from SVGRenderer import render_svg
             print(f"[UML] Generating UML for Unity C# in {project_dir}")
             puml_path = gen_unity(project_dir)
             svg = render_svg(puml_path)
@@ -104,7 +105,7 @@ if __name__ == "__main__":
                 input('Pressione ENTER para sair...')
         elif tipo == "python":
             from PythonUML import generate_puml as gen_py
-            from CSharpForUnity import render_svg
+            from SVGRenderer import render_svg
             print(f"[UML] Generating UML for Python in {project_dir}")
             puml_path = gen_py(project_dir)
             svg = render_svg(puml_path)

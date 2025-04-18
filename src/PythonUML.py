@@ -1,6 +1,7 @@
 import os
 import re
 from collections import defaultdict
+from SVGRenderer import render_svg
 
 # Regex patterns for Python class, method, and attribute extraction
 CLASS_PATTERN = re.compile(r'^class (\w+)(\(([^)]*)\))?:')

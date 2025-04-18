@@ -148,21 +148,6 @@ def generate_puml(project_dir):
         f.write('@enduml\n')
     return output_file
 
-def render_svg(puml_path):
-    folder = os.path.dirname(puml_path)
-    svg_file = os.path.splitext(puml_path)[0] + ".svg"
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    plantuml_jar = os.path.join(script_dir, "plantuml.jar")
-    try:
-        subprocess.run(["java", "-jar", plantuml_jar, "-tsvg", os.path.basename(puml_path)], cwd=folder, check=True)
-        if os.path.exists(svg_file):
-            webbrowser.open(svg_file)
-            return svg_file
-        else:
-            return None
-    except subprocess.CalledProcessError:
-        return None
-
 def main():
     if len(sys.argv) > 1:
         root_folder = sys.argv[1]
@@ -171,6 +156,7 @@ def main():
         try:
             puml_file = generate_puml(root_folder)
             print(f"[UML] PUML generated: {puml_file}")
+            from SVGRenderer import render_svg
             svg = render_svg(puml_file)
             if svg:
                 print(f"[UML] SVG generated: {svg}")
