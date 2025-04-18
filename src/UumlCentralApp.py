@@ -34,17 +34,25 @@ def detect_project_type(project_dir):
     if uproject_files and os.path.isdir(source_dir) and find_files_with_ext(source_dir, ['.h', '.cpp']):
         return 'cpp4ue'
     # Unity
-    if find_files_with_ext(project_dir, ['.cs']) and (
-        os.path.exists(os.path.join(project_dir, 'Assembly-CSharp.csproj')) or
-        os.path.isdir(os.path.join(project_dir, 'ProjectSettings'))
-    ):
-        return 'unity'
+    if find_files_with_ext(project_dir, ['.cs']):
+        # CSharp for Unity: tem Assembly-CSharp.csproj ou ProjectSettings
+        if (
+            os.path.exists(os.path.join(project_dir, 'Assembly-CSharp.csproj')) or
+            os.path.isdir(os.path.join(project_dir, 'ProjectSettings'))
+        ):
+            return 'unity'
+        # CSharp puro: NÃO tem Assembly-CSharp.csproj nem ProjectSettings
+        else:
+            return 'csharp'
     # Python
     if find_files_with_ext(project_dir, ['.py']):
         return 'python'
     # C++ puro (mas não Unreal)
     if find_files_with_ext(project_dir, ['.cpp', '.h'], exclude_dirs=['Source']):
         return 'cpp'
+    # Go
+    if find_files_with_ext(project_dir, ['.go']):
+        return 'go'
     return None
 
 def get_project_dir():
@@ -58,7 +66,7 @@ if __name__ == "__main__":
     try:
         parser = argparse.ArgumentParser(description="UML Central App (console)")
         parser.add_argument("--project", "-p", required=False, help="Project path (root directory)")
-        parser.add_argument("--type", "-t", required=False, choices=["cpp4ue", "cpp", "unity", "python"], help="Project type: cpp4ue, cpp, unity, python")
+        parser.add_argument("--type", "-t", required=False, choices=["cpp4ue", "cpp", "unity", "python", "csharp", "go"], help="Project type: cpp4ue, cpp, unity, python, csharp, go")
         args = parser.parse_args()
 
         # Definir diretório do projeto
@@ -67,7 +75,7 @@ if __name__ == "__main__":
         tipo = args.type if args.type else detect_project_type(project_dir)
         if not tipo:
             print("[UML] ERROR: Could not detect project type automatically. Please specify --type.")
-            print("[UML] Supported types: cpp4ue, cpp, unity, python.")
+            print("[UML] Supported types: cpp4ue, cpp, unity, python, csharp, go.")
             if getattr(sys, 'frozen', False):
                 input('Pressione ENTER para sair...')
             sys.exit(1)
@@ -116,8 +124,22 @@ if __name__ == "__main__":
             print("[UML] Finished!")
             if getattr(sys, 'frozen', False):
                 input('Pressione ENTER para sair...')
+        elif tipo == "csharp":
+            from CSharpUML import main as gen_csharp
+            print(f"[UML] Generating UML for C# in {project_dir}")
+            gen_csharp(project_dir)
+            print("[UML] Finished!")
+            if getattr(sys, 'frozen', False):
+                input('Pressione ENTER para sair...')
+        elif tipo == "go":
+            from GoUML import main as gen_go
+            print(f"[UML] Generating UML for Go in {project_dir}")
+            gen_go(project_dir)
+            print("[UML] Finished!")
+            if getattr(sys, 'frozen', False):
+                input('Pressione ENTER para sair...')
         else:
-            print("Unrecognized project type. Use --type among: cpp4ue, cpp, unity, python.")
+            print("Unrecognized project type. Use --type among: cpp4ue, cpp, unity, python, csharp, go.")
             if getattr(sys, 'frozen', False):
                 input('Pressione ENTER para sair...')
             sys.exit(1)
