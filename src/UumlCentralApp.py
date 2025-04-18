@@ -128,37 +128,46 @@ class MainApp(ctk.CTk):
         script_map = {
             "C++ for Unreal": "CPPForUnrealEngine.py",
             "C# for Unity": "CSharpForUnity.py",
+            "Python": "PythonUML.py",
             # Futuramente: "C#": "CSharpDotNet.py", "Java": "Java.py", etc.
         }
         script_name = script_map.get(lang)
         if script_name:
             script_path = os.path.join(os.path.dirname(__file__), script_name)
-            if not os.path.isfile(script_path):
-                self.status_var.set(f"Script for {lang} not found: {script_path}")
-                self.log(f"[ERROR] Script for {lang} not found: {script_path}")
-                self.run_btn.configure(state="normal")
-                return
-            try:
-                # Passa o root folder como argumento para o script
-                process = subprocess.Popen([sys.executable, script_path, folder], cwd=os.path.dirname(script_path), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-                for line in process.stdout:
-                    self.log(line.rstrip())
-                    self.update()
-                process.wait()
-                if process.returncode == 0:
-                    self.status_var.set(f"UML generation for {lang} completed.")
-                    self.log(f"[SUCCESS] UML generation for {lang} completed.")
+            script_dir = os.path.dirname(script_path)
+            result = subprocess.run([sys.executable, script_path, folder], capture_output=True, text=True, cwd=script_dir)
+            self.log(result.stdout)
+            if result.stderr:
+                self.log(f"[STDERR] {result.stderr}")
+            # After .puml, try to generate SVG with PlantUML if .puml exists
+            puml_file = None
+            if lang == "Python":
+                puml_file = os.path.join(folder, "PythonProject.puml")
+            elif lang == "C++ for Unreal":
+                puml_file = os.path.join(folder, "UnrealProject.puml")
+            elif lang == "C# for Unity":
+                puml_file = os.path.join(folder, "UnityProject.puml")
+            if puml_file and os.path.exists(puml_file):
+                plantuml_jar = os.path.join(os.path.dirname(__file__), "plantuml.jar")
+                svg_file = puml_file.replace(".puml", ".svg")
+                cmd = ["java", "-jar", plantuml_jar, "-tsvg", puml_file]
+                svg_result = subprocess.run(cmd, capture_output=True, text=True)
+                self.log(svg_result.stdout)
+                if svg_result.stderr:
+                    self.log(f"[PlantUML STDERR] {svg_result.stderr}")
+                if os.path.exists(svg_file):
+                    os.startfile(svg_file)
+                    self.status_var.set(f"SVG generated and opened: {svg_file}")
                 else:
-                    self.status_var.set(f"Error running {script_name}")
-                    self.log(f"[ERROR] Error running {script_name}")
-            except Exception as e:
-                self.status_var.set(f"Failed to run {script_name}: {e}")
-                self.log(f"[ERROR] Failed to run {script_name}: {e}")
-            self.run_btn.configure(state="normal")
+                    self.status_var.set(f"PUML generated, but SVG not found: {svg_file}")
+                    self.log(f"[ERROR] SVG not generated for {puml_file}")
+            else:
+                self.status_var.set(f"PUML file not found for {lang}")
+                self.log(f"[ERROR] PUML file not found: {puml_file}")
         else:
             self.status_var.set(f"UML generation for {lang} is not implemented yet.")
             self.log(f"[ERROR] UML generation for {lang} is not implemented yet.")
-            self.run_btn.configure(state="normal")
+        self.run_btn.configure(state="normal")
 
 if __name__ == "__main__":
     app = MainApp()

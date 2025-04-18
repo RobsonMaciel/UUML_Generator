@@ -29,21 +29,23 @@
 
 ## 🌍 Supported Languages & Features
 
-| Language               | Grouping/Color | Methods & Props | Special Features                      |
-|-----------------------|:--------------:|:---------------:|---------------------------------------|
-| C++                   |      ✔️        |       ✔️        |                                       |
-| C++ for Unreal Engine |      ✔️        |       ✔️        | UCLASS/UFUNCTION/UPROPERTY detection  |
-| C#                    |      ✔️        |       ✔️        |                                       |
-| C# for Unity          |      ✔️        |       ✔️        | MonoBehaviour/ScriptableObject groups |
-| Python                |                |                 |                                       |
-| Java                  |                |                 |                                       |
-| Blueprint for Unreal Engine |           |                 |                                       |
+| Language               | Grouping/Color | Methods & Props | Special Features                      | Planned/Future |
+|-----------------------|:--------------:|:---------------:|---------------------------------------|:--------------:|
+| C++                   |                |                 |                                       |       ✔️       |
+| C++ for Unreal Engine |      ✔️        |       ✔️        | UCLASS/UFUNCTION/UPROPERTY detection  |                |
+| C#                    |                |                 |                                       |       ✔️       |
+| C# for Unity          |      ✔️        |       ✔️        | MonoBehaviour/ScriptableObject groups |                |
+| Python                |      ✔️        |       ✔️        | Grouped by module, colored packages, <<PythonClass>> stereotype |                |
+| Java                  |                |                 |                                       |       ✔️       |
+| Blueprint for Unreal Engine |           |                 |                                       |       ✔️       |
 
 ---
 
 ## 🎨 Visual Style
 
 - Dark background, white fonts, vivid package/class colors
+- **Python:** Each module is a colored package (`package "module.py" <<PythonModule>>`), all classes have the <<PythonClass>> stereotype (bold, blue border, white text)
+- **Unreal/Unity:** Packages by stereotype (e.g., MonoBehaviour), each with its own color
 - Smooth arrows, optimal spacing, and clear grouping
 - All text inside class boxes is white for maximum contrast
 
