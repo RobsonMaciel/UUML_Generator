@@ -210,8 +210,8 @@ def main(project_dir):
         print(f"[UML V2] Erro ao ler e printar o JSON: {e}")
 
     # Gerar PUML de teste com classes fictícias
-    print("\n[UML V2] PUML DE TESTE (mock):\n")
-    mock_puml = generate_mock_puml()
+    print("\n[UML V2] PUML DE TESTE (mock dinâmico):\n")
+    mock_puml = generate_dynamic_mock_puml()
     print(mock_puml)
 
     # Salvar PUML em arquivo
@@ -236,80 +236,60 @@ def main(project_dir):
         print(f"[UML V2] SVG não encontrado: {svg_path}")
 
 
-def generate_mock_puml():
+def generate_dynamic_mock_puml():
     """
-    Gera um PUML de teste com múltiplos estereótipos, agrupados visualmente em packages e com cores distintas para cada grupo. Compatível com PlantUML local/jar.
+    Gera um PUML de teste dinâmico, com agrupamento e cores automáticas por estereótipo.
     """
-    return '''@startuml
-
-' Definição de cores para estereótipos
-skinparam class {
-  BackgroundColor<<Controller>> #FFD580
-  BackgroundColor<<Service>> #B3E6B3
-  BackgroundColor<<Entity>> #FFB3B3
-  BackgroundColor<<UnrealStruct>> #B3D1FF
-  BackgroundColor<<Interface>> #E0B3FF
-  BackgroundColor<<ValueObject>> #FFF0B3
-}
-
-' --- Controllers ---
-package "Controllers" <<Rectangle>> {
-  class GameController <<Controller>> {
-    +startGame() : void
-    +endGame() : void
-    +service : GameService
-  }
-}
-
-' --- Services ---
-package "Services" <<Rectangle>> {
-  class GameService <<Service>> {
-    +processMove() : bool
-    +saveGame() : void
-    +entity : PlayerEntity
-  }
-}
-
-' --- Entities ---
-package "Entities" <<Rectangle>> {
-  class PlayerEntity <<Entity>> {
-    +id : int
-    +name : String
-    +score : int
-  }
-}
-
-' --- Structs ---
-package "Structs" <<Rectangle>> {
-  struct Vec2D <<UnrealStruct>> {
-    +float x
-    +float y
-  }
-}
-
-' --- Interfaces ---
-package "Interfaces" <<Rectangle>> {
-  interface ITrainable <<Interface>> {
-    +train(command : String) : bool
-  }
-}
-
-' --- Value Objects ---
-package "ValueObjects" <<Rectangle>> {
-  class GameSettings <<ValueObject>> {
-    +difficulty : String
-    +maxPlayers : int
-  }
-}
-
-' --- Relações ---
-GameController --> GameService : uses
-GameService --> PlayerEntity : manages
-PlayerEntity --> Vec2D : has position
-PlayerEntity ..|> ITrainable : optional
-GameController --> GameSettings : configures
-
-@enduml'''
+    # Mock dinâmico: lista de classes fictícias com estereótipos variados
+    mock_classes = [
+        {'name': 'GameController', 'stereotype': 'Controller', 'fields': ['+service : GameService'], 'methods': ['+startGame() : void', '+endGame() : void']},
+        {'name': 'GameService', 'stereotype': 'Service', 'fields': ['+entity : PlayerEntity'], 'methods': ['+processMove() : bool', '+saveGame() : void']},
+        {'name': 'PlayerEntity', 'stereotype': 'Entity', 'fields': ['+id : int', '+name : String', '+score : int'], 'methods': []},
+        {'name': 'Vec2D', 'stereotype': 'UnrealStruct', 'fields': ['+float x', '+float y'], 'methods': []},
+        {'name': 'ITrainable', 'stereotype': 'Interface', 'fields': [], 'methods': ['+train(command : String) : bool']},
+        {'name': 'GameSettings', 'stereotype': 'ValueObject', 'fields': ['+difficulty : String', '+maxPlayers : int'], 'methods': []},
+    ]
+    # Relações fictícias
+    mock_relations = [
+        ('GameController', 'GameService', '-->', 'uses'),
+        ('GameService', 'PlayerEntity', '-->', 'manages'),
+        ('PlayerEntity', 'Vec2D', '-->', 'has position'),
+        ('PlayerEntity', 'ITrainable', '..|>', 'optional'),
+        ('GameController', 'GameSettings', '-->', 'configures'),
+    ]
+    # 1. Descobrir todos os estereótipos únicos
+    stereotypes = sorted(set(cls['stereotype'] for cls in mock_classes))
+    # 2. Gerar cores automaticamente (paleta pastel)
+    pastel_palette = [
+        '#FFD580', '#B3E6B3', '#FFB3B3', '#B3D1FF', '#E0B3FF', '#FFF0B3', '#C6E2FF', '#FFCCE5', '#D5FFCC', '#FFDFBA'
+    ]
+    colors = {st: pastel_palette[i % len(pastel_palette)] for i, st in enumerate(stereotypes)}
+    # 3. Montar skinparam dinamicamente
+    skinparam = '\n'.join([
+        f'  BackgroundColor<<{st}>> {color}' for st, color in colors.items()
+    ])
+    # 4. Agrupar por estereótipo
+    puml = ["@startuml", "", "' Definição de cores dinâmica por estereótipo", f"skinparam class {{\n{skinparam}\n}}", ""]
+    for st in stereotypes:
+        puml.append(f"package \"{st}s\" <<Rectangle>> {{")
+        for cls in mock_classes:
+            if cls['stereotype'] == st:
+                kind = 'struct' if st == 'UnrealStruct' else ('interface' if st == 'Interface' else 'class')
+                stereotype_tag = f"<<{st}>>"
+                puml.append(f"  {kind} {cls['name']} {stereotype_tag} {{")
+                for f in cls['fields']:
+                    puml.append(f"    {f}")
+                for m in cls['methods']:
+                    puml.append(f"    {m}")
+                puml.append("  }")
+        puml.append("}")
+        puml.append("")
+    # 5. Relações
+    puml.append("' --- Relações ---")
+    for src, tgt, arrow, label in mock_relations:
+        puml.append(f"{src} {arrow} {tgt} : {label}")
+    puml.append("\n@enduml")
+    return '\n'.join(puml)
 
 if __name__ == '__main__':
     import sys
