@@ -40,7 +40,7 @@
 
 1. Make sure you have **Java 17+** installed.
 2. Go to the `src` folder. All code, the executable, icon, and `plantuml.jar` are there.
-3. Run `UnrealUML_APP.py` (or the compiled `.exe`).
+3. Run `UumlCentralApp.py` (or the compiled `.exe`).
 4. The app will:
    - Detect your `CodeExamples` folder (with Unreal C++ headers for testing)
    - Generate `.puml` based on Unreal C++ headers
@@ -63,8 +63,8 @@
 ```
 /UnrealUML
   /src
-    UnrealUML_APP.py
-    UnrealUML_APP.exe
+    UumlCentralApp.py
+    CPPForUnrealEngine.py
     unrealuml_icon.ico
     plantuml.jar
   /CodeExamples
@@ -82,6 +82,7 @@ Place the `plantuml.jar` file inside the `src` folder.
 ## 📝 Notes
 
 - All Python and executable files are now inside the `src` directory for better organization.
+- Todos os arquivos Python agora seguem o padrão de nomes por linguagem, por exemplo: `CPPForUnrealEngine.py`, facilitando a expansão para novas linguagens.
 - Example Unreal Engine C++ headers for testing are in `CodeExamples`.
 - The project is ready for packaging and distribution as a single .exe with a custom icon.
 
@@ -123,7 +124,7 @@ Place the `plantuml.jar` file inside the `src` folder.
 
 1. Instale o Java 17+.
 2. Vá para a pasta `src`. Todos os arquivos de código, executável, ícone e `plantuml.jar` estão lá.
-3. Execute `UnrealUML_APP.py` (ou o compilado `.exe`).
+3. Execute `UumlCentralApp.py` (ou o compilado `.exe`).
 4. O app irá:
    - Detectar a pasta `CodeExamples` (com headers C++ do Unreal Engine para teste)
    - Gerar `.puml` com base nos headers C++ do Unreal Engine
@@ -134,7 +135,7 @@ Place the `plantuml.jar` file inside the `src` folder.
 ## 📦 Empacotamento
 
 ```bash
-python -m PyInstaller --onefile --noconsole --icon=unrealuml_icon.ico UnrealUML_APP.py
+python -m PyInstaller --onefile --noconsole --icon=unrealuml_icon.ico UumlCentralApp.py
 ```
 
 ## 👤 Autor

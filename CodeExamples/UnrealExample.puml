@@ -1,0 +1,141 @@
+@startuml
+left to right direction
+skinparam TitleFontColor #ffffff
+skinparam ranksep 1.3
+skinparam nodesep 1.0
+skinparam linetype polyline
+skinparam ArrowThickness 2
+skinparam ArrowFontColor #ffffff
+skinparam backgroundColor #1e1e1e
+skinparam classBackgroundColor #3c3c3c
+skinparam classBorderColor #00bfff
+skinparam classFontColor #ffffff
+skinparam classAttributeFontColor #ffffff
+skinparam classMethodFontColor #ffffff
+skinparam classArrowColor #00bfff
+skinparam classAttributeIconSize 0
+skinparam dpi 150
+skinparam package {
+  BackgroundColor #2c2c2c
+  BorderColor #00bfff
+  FontColor #ffffff
+  BackgroundColor<<Actors>> #193c7c
+  BorderColor<<Actors>> #1e90ff
+  BackgroundColor<<Characters>> #ff8c00
+  BorderColor<<Characters>> #ff6600
+  BackgroundColor<<Controllers>> #1f4e4e
+  BorderColor<<Controllers>> #00ced1
+  BackgroundColor<<GameModes>> #3c245c
+  BorderColor<<GameModes>> #a020f0
+  BackgroundColor<<Components>> #2c72a8
+  BorderColor<<Components>> #00bfff
+  BackgroundColor<<HUD>> #1d5e3b
+  BorderColor<<HUD>> #00ff7f
+  BackgroundColor<<Helpers>> #484848
+  BorderColor<<Helpers>> #aaaaaa
+  BackgroundColor<<DataAssets>> #553300
+  BorderColor<<DataAssets>> #ffaa00
+  BackgroundColor<<Persistence>> #006060
+  BorderColor<<Persistence>> #00cccc
+  BackgroundColor<<BlueprintLibraries>> #2e003e
+  BorderColor<<BlueprintLibraries>> #b266ff
+  BackgroundColor<<Others>> #404040
+  BorderColor<<Others>> #999999
+}
+title UnrealExample - Unreal Engine 5.5
+package "Helpers" <<Helpers>> {
+  class UAnimationClip extends UObject {
+    FString Name
+    float Duration
+public: UAnimationClip()
+    void Play()
+  }
+  class UMaterial extends UObject {
+public: UMaterial()
+    void Apply()
+    void SetColor(FColor color)
+  }
+  class UMesh extends UObject {
+public: UMesh()
+    void Render()
+    void SetVertices(TArray<FVector> vertices)
+  }
+  class UMusic extends UObject {
+public: UMusic()
+    void Play()
+    void Stop()
+  }
+  class UScriptableObject extends UObject {
+public: UScriptableObject()
+    void Initialize()
+    void Save()
+  }
+  class UShader extends UObject {
+public: UShader()
+    void Compile()
+    void SetProperty(FString propertyName, float value)
+  }
+  class USound extends UObject {
+public: USound()
+    void Play()
+    void Stop()
+  }
+  class UTexture extends UObject {
+public: UTexture()
+    void Load()
+    void Apply()
+  }
+  class UURL extends UObject {
+    FString Address
+public: UURL()
+    void Open()
+  }
+  class UVideo extends UObject {
+public: UVideo()
+    void Play()
+    void Stop()
+  }
+}
+package "Characters" <<Characters>> {
+  class ACharacter extends ACharacter {
+    int Health
+    int Stamina
+    int Strength
+    int Agility
+    int Intelligence
+    int Level
+    int Experience
+public: ACharacter()
+    void Move()
+    void Jump()
+    void Attack()
+    void Defend()
+    void Heal()
+    void UseItem()
+  }
+  class AEnemy extends ACharacter {
+    int Damage
+public: AEnemy()
+    void AttackPlayer(APlayerCharacter* player)
+    void Patrol()
+    void Flee()
+    void DropLoot()
+  }
+  class ANPC extends ACharacter {
+    FString Dialogue
+public: ANPC()
+    void Speak()
+    void FollowPlayer(APlayerCharacter* player)
+    void GiveQuest(class AQuest* quest)
+    void CompleteQuest(class AQuest* quest)
+  }
+  class APlayerCharacter extends ACharacter {
+public: APlayerCharacter()
+    void SaveGame()
+    void LoadGame()
+    void EquipArmor(class AArmor* armor)
+    void UnequipArmor(class AArmor* armor)
+    void CustomizeAppearance()
+  }
+}
+@enduml
