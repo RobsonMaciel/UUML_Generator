@@ -6,7 +6,6 @@ import webbrowser
 from collections import defaultdict
 
 def extract_classes_methods_attributes(cs_code):
-    # Regex para classes que herdam MonoBehaviour
     class_regex = r'class\s+(\w+)\s*:\s*MonoBehaviour'
     method_regex = r'public\s+[\w<>\[\]]+\s+(\w+)\s*\(([^)]*)\)'
     attr_regex = r'public\s+[\w<>\[\]]+\s+(\w+)\s*(=\s*[^;]+)?;'
@@ -38,7 +37,6 @@ def generate_puml(project_dir):
                 try:
                     with open(path, encoding='utf-8', errors='ignore') as f:
                         code = f.read()
-                    # Herança: class Nome : Base
                     class_decl = re.findall(r'class\s+(\w+)\s*:\s*([\w, ]+)', code)
                     for cls, bases in class_decl:
                         base = bases.split(',')[0].strip()
@@ -53,9 +51,7 @@ def generate_puml(project_dir):
                             type_groups['Component']['classes'].append(cls)
                         else:
                             type_groups['Other']['classes'].append(cls)
-                        # Relação de herança
                         relations.add((cls, base, 'extends'))
-                    # Métodos e atributos
                     classes, methods, attrs = extract_classes_methods_attributes(code)
                     for cls in classes:
                         class_defs[cls]['file'] = path
@@ -63,35 +59,28 @@ def generate_puml(project_dir):
                         class_defs[cls]['methods'].append(m[0])
                     for a in attrs:
                         class_defs[cls]['attrs'].append(a[0])
-                    # Relações de atributo: se um atributo é de outro tipo conhecido
                     for a in attrs:
                         atype = a[0]
                         if atype in class_defs:
                             relations.add((cls, atype, 'uses'))
                 except Exception:
                     continue
-    # Limpa nomes e remove duplicatas
     def clean_name(name):
         return re.sub(r'[^a-zA-Z0-9_]', '', name)
-    # Relações filtradas: só relações válidas (src e dst não vazios)
     filtered_relations = []
     for src, dst, rel in relations:
         src_clean = clean_name(src)
         dst_clean = clean_name(dst)
         if src_clean and (rel != 'extends' or dst_clean):
             filtered_relations.append((src, dst, rel))
-    # Adiciona bases principais como classes no diagrama para garantir destino das setas
     base_visuals = [
         ('MonoBehaviour', '#4e9fff'),
         ('ScriptableObject', '#b57bff'),
         ('Component', '#6ee7b7')
     ]
     defined_classes = set()
-    # Coletar todos os destinos de herança
     all_bases = set(clean_name(dst) for _, dst, rel in filtered_relations if rel == 'extends')
-    # Coletar todas as classes definidas
     all_defined = set(clean_name(cls) for cls in class_defs.keys())
-    # Bases extras que precisam ser declaradas
     extra_bases = all_bases - all_defined - set(clean_name(b[0]) for b in base_visuals)
     with open(output_file, 'w', encoding='utf-8') as f:
         f.write('@startuml\n')
@@ -107,7 +96,6 @@ def generate_puml(project_dir):
         f.write('skinparam classBackgroundColor #23272e\n')
         f.write('skinparam ArrowColor #f5f5f5\n')
         f.write('left to right direction\n')
-        # Definições de cor para pacotes por estereótipo
         f.write('skinparam package<<MonoBehaviour>> {\n')
         f.write('  BorderColor #4e9fff\n')
         f.write('  BackgroundColor #4e9fff\n')
@@ -120,7 +108,6 @@ def generate_puml(project_dir):
         f.write('  BorderColor #ffb347\n')
         f.write('  BackgroundColor #ffb347\n')
         f.write('}\n')
-        # Pacotes (agrupamento por tipo)
         package_names = set()
         for ptype, info in type_groups.items():
             if info['classes']:
@@ -142,18 +129,15 @@ def generate_puml(project_dir):
                             f.write(f'    class {cname}\n')
                         defined_classes.add(cname)
                 f.write('}\n')
-        # Bases visuais
         for base, color in base_visuals:
             bname = clean_name(base)
             if bname not in defined_classes and bname not in package_names:
                 f.write(f'abstract class {bname} <<(A,#cccccc)>>\n')
                 defined_classes.add(bname)
-        # Bases extras (heranças externas)
         for base in extra_bases:
             if base and base not in defined_classes:
                 f.write(f'abstract class {base} <<(A,#888888)>>\n')
                 defined_classes.add(base)
-        # Relações
         for src, dst, rel in filtered_relations:
             src_clean = clean_name(src)
             dst_clean = clean_name(dst)
@@ -198,7 +182,7 @@ def main():
             sys.exit(1)
         sys.exit(0)
     else:
-        print("Abra este script pelo app central ou forneça o caminho do projeto como argumento.")
+        print("Please provide the project path as an argument.")
 
 if __name__ == "__main__":
     main()

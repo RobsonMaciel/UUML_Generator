@@ -4,25 +4,34 @@ import json
 from collections import defaultdict
 
 """
-CPPForUnrealEngineV2.py
+CPPForUnrealEngine.py
 -----------------------
-Gera JSON UML-compliant (conforme https://plantuml.com/class-diagram) de todos os headers C++ Unreal Engine do projeto.
-Inclui TODOS os atributos e métodos presentes no header, respeitando visibilidade, sem depender de macros Unreal.
-Apenas entidades e relações permitidas pelo PlantUML Class Diagram são consideradas.
+Generates UML-compliant JSON (according to https://plantuml.com/class-diagram) for all Unreal Engine C++ headers in the project.
+Includes ALL attributes and methods present in the header, respecting visibility, without depending on Unreal macros.
+Only entities and relationships allowed by the PlantUML Class Diagram are considered.
 """
 
 def clean_type(type_str):
+    """
+    Cleans the data type by removing unwanted characters.
+    """
     type_str = re.sub(r'[&*]', '', type_str)
     type_str = re.sub(r'<[^>]*>', '', type_str)
     type_str = re.sub(r'\b(const|virtual|static|inline|override|final|explicit|friend|mutable|volatile|constexpr|typename|class|struct|enum|public|protected|private)\b', '', type_str)
     return type_str.strip()
 
 def clean_param(param):
+    """
+    Cleans the parameter by removing unwanted characters.
+    """
     param = clean_type(param)
     param = re.sub(r'\b\w+\s*$', '', param).strip()
     return param
 
 def clean_params(params_str):
+    """
+    Cleans the parameters by removing unwanted characters.
+    """
     if not params_str.strip():
         return ''
     params = []
@@ -32,18 +41,18 @@ def clean_params(params_str):
             params.append(p)
     return ', '.join(params)
 
-# --- Parsing de headers Unreal para UML JSON ---
+# --- Unreal header parsing to UML JSON ---
 def parse_unreal_headers_to_uml_json(project_dir):
     """
-    Percorre todos os headers .h e gera um JSON UML-compliant (PlantUML class diagram):
+    Scans all .h headers and generates a UML-compliant JSON (PlantUML class diagram):
     - classes, interfaces, enums
-    - TODOS os atributos e métodos (com visibilidade)
-    - relações: extends (herança), implements (interface)
+    - ALL attributes and methods (with visibility)
+    - relationships: extends (inheritance), implements (interface)
     """
     classes = []
     interfaces = []
     enums = []
-    # Primeira passagem: coletar todos os nomes de classes
+    # First pass: collect all class names
     all_class_names = set()
     header_data = []
     for root, dirs, files in os.walk(project_dir):
@@ -56,7 +65,7 @@ def parse_unreal_headers_to_uml_json(project_dir):
                     all_class_names.add(decl_match.group(1))
                 header_data.append((file_path, content))
 
-    # Segunda passagem: processar cada header normalmente
+    # Second pass: process each header normally
     for file_path, content in header_data:
         content_no_comments = re.sub(r'/\*.*?\*/', '', content, flags=re.DOTALL)
         content_no_comments = re.sub(r'//.*', '', content_no_comments)
@@ -65,11 +74,11 @@ def parse_unreal_headers_to_uml_json(project_dir):
             name, body = m.group(1), m.group(2)
             values = [v.split()[0].replace(',', '') for v in body.splitlines() if v.strip() and not v.strip().startswith('//')]
             enums.append({'name': name, 'values': values})
-        # Interfaces Unreal (UINTERFACE)
+        # Unreal Interfaces (UINTERFACE)
         for m in re.finditer(r'UINTERFACE\s*\(.*?\)?\s*class\s+(\w+)\s*:\s*public\s+UInterface\s*{', content_no_comments):
             interface_name = m.group(1)
             interfaces.append({'name': interface_name, 'methods': []})
-        # Classes/Structs/Interfaces Unreal
+        # Unreal Classes/Structs/Interfaces
         lines = content_no_comments.split('\n')
         i = 0
         while i < len(lines):
@@ -82,25 +91,25 @@ def parse_unreal_headers_to_uml_json(project_dir):
             elif re.match(r'^UINTERFACE\b', line):
                 kind = 'interface'
             if kind:
-                # Novo: unir linhas de declaração até encontrar '{' ou ':'
+                # New: join declaration lines until '{' or ':' is found
                 decl_j = 1
                 decl_lines = [lines[i + decl_j].strip()]
                 while '{' not in decl_lines[-1] and ':' not in decl_lines[-1] and i + decl_j + 1 < len(lines):
                     decl_j += 1
                     decl_lines.append(lines[i + decl_j].strip())
                 decl_line_full = ' '.join(decl_lines)
-                # Regex robusta para Unreal: suporta macro API e herança
+                # Robust regex for Unreal: supports macro API and inheritance
                 decl_match = re.match(r'class\s+(?:\w+_API\s+)?([A-Za-z_][A-Za-z0-9_]*)\b', decl_line_full)
                 if decl_match:
                     ctype = 'class'
                     name = decl_match.group(1)
                     parent = ''
-                    # Tenta capturar herança se houver
+                    # Try to capture inheritance if present
                     parent_match = re.search(r':\s*public\s+([\w_:<> ,]+)', decl_line_full)
                     if parent_match:
                         parent = parent_match.group(1)
                     k = i + decl_j
-                    # Extrai corpo da classe até '};'
+                    # Extract class body until '};'
                     body_lines = []
                     started = False
                     for lidx in range(k, len(lines)):
@@ -112,9 +121,7 @@ def parse_unreal_headers_to_uml_json(project_dir):
                             break
                     body = '\n'.join(body_lines)
                     class_name = str(name)
-                    # DEBUG: print para depuração do nome da classe
-                    # print(f"[DEBUG] Classe detectada: {class_name}")
-                    # Passagem 1: Coleta atributos (inclusive privados)
+                    # Pass 1: Collect attributes (including private)
                     attributes = []
                     current_vis = 'private' if kind == 'class' else 'public'
                     for bl in body.split('\n'):
@@ -128,7 +135,7 @@ def parse_unreal_headers_to_uml_json(project_dir):
                             attr_type = clean_type(attr_match.group(1))
                             attr_name = attr_match.group(2)
                             attributes.append({'name': attr_name, 'type': attr_type, 'visibility': current_vis})
-                    # Passagem 2: Coleta métodos (inclusive overrides, construtor e visibilidade correta)
+                    # Pass 2: Collect methods (including overrides, constructor and correct visibility)
                     methods = []
                     current_vis = 'private' if kind == 'class' else 'public'
                     for bl in body.split('\n'):
@@ -137,47 +144,47 @@ def parse_unreal_headers_to_uml_json(project_dir):
                         if vis_match:
                             current_vis = vis_match.group(1)
                             continue
-                        # Regex aprimorada para métodos virtuais (com ou sem override)
+                        # Improved regex for virtual methods (with or without override)
                         meth_match = re.match(r'(virtual\s+)?([\w:<>]+(?:\s*\*)?)?\s*([A-Za-z_][\w]*)\s*\(([^)]*)\)\s*(const)?\s*(override)?\s*(final)?\s*(=\s*0)?\s*(\{|;)', bl_strip)
                         if meth_match:
                             is_virtual = meth_match.group(1) is not None
                             meth_type = clean_type(meth_match.group(2) or '')
                             method_name = meth_match.group(3)
                             meth_params = clean_params(meth_match.group(4))
-                            # Solução definitiva: ignorar métodos claramente truncados ou construtores
+                            # Ignore clearly truncated methods or constructors
                             if method_name == class_name or len(method_name) <= 2 or (method_name[-1:] == class_name[-1:] and len(method_name) < len(class_name)):
                                 continue
-                            # Corrigir tipo truncado: se o tipo termina igual ao nome da classe mas está truncado, corrige para o nome da classe
+                            # Fix truncated type: if the type ends the same as the class name but is truncated, fix to class name
                             if meth_type and meth_type != class_name and meth_type.endswith(class_name[:-1]):
                                 meth_type = class_name
-                            # Captura todos os métodos override Unreal (Tick, BeginPlay, etc.)
+                            # Capture all Unreal override methods (Tick, BeginPlay, etc.)
                             if meth_match.group(6) == 'override' or method_name in [
                                 'Tick', 'BeginPlay', 'SetupPlayerInputComponent', 'GetLifetimeReplicatedProps', 'OnRep_PlayerState', 'GetAbilitySystemComponent', 'LoseBall_Implementation']:
                                 methods.append({'name': method_name, 'type': meth_type if meth_type else class_name, 'params': meth_params, 'visibility': current_vis})
-                            # Adiciona todos os métodos declarados
+                            # Add all declared methods
                             elif meth_type or meth_params or method_name:
                                 methods.append({'name': method_name, 'type': meth_type if meth_type else class_name, 'params': meth_params, 'visibility': current_vis})
-                    # Relações UML
+                    # UML Relationships
                     relations = []
                     if parent:
                         for p in parent.split(','):
                             relations.append({'type': 'extends', 'target': p.strip()})
-                    # --- Adicionar relações de associação/uso ---
-                    # Coletar tipos de atributos e métodos para relações
+                    # --- Add association/use relationships ---
+                    # Collect attribute and method types for relationships
                     rel_targets = set()
                     for attr in attributes:
                         if attr['type'] in all_class_names and attr['type'] != class_name:
                             rel_targets.add(attr['type'])
                     for meth in methods:
-                        # Parâmetros podem ser múltiplos tipos separados por vírgula
+                        # Parameters can be multiple types separated by comma
                         for param_type in meth.get('params', '').split(','):
                             t = param_type.strip()
                             if t in all_class_names and t != class_name:
                                 rel_targets.add(t)
-                    # Adicionar relações de associação
+                    # Add association relationships
                     for target in sorted(rel_targets):
                         relations.append({'type': 'association', 'target': target})
-                    # Limpar o campo 'target' removendo visibilidade e espaços extras
+                    # Clean the 'target' field by removing visibility and extra spaces
                     def clean_relation_target(name):
                         return re.sub(r'^(public|protected|private)\s*:?', '', name, flags=re.IGNORECASE).strip()
                     for rel in relations:
@@ -192,7 +199,7 @@ def parse_unreal_headers_to_uml_json(project_dir):
                     if kind == 'interface':
                         interfaces.append(entity)
                     elif kind == 'struct':
-                        classes.append(entity)  # Struct vira class UML
+                        classes.append(entity)  # Struct becomes UML class
                     else:
                         classes.append(entity)
                     break
@@ -204,53 +211,53 @@ def main(project_dir):
     json_file = os.path.join(project_dir, 'UML_ClassDiagram.json')
     with open(json_file, 'w', encoding='utf-8') as jf:
         json.dump(uml_json, jf, indent=2, ensure_ascii=False)
-    print(f'[UML V2] UML JSON salvo em: {json_file}')
+    print(f'[UML] UML JSON saved at: {json_file}')
 
     try:
         with open(json_file, 'r', encoding='utf-8') as f:
             uml_json = json.load(f)
     except Exception as e:
-        print(f"[UML V2] Erro ao ler o JSON para gerar PUML: {e}")
+        print(f"[UML] Error reading JSON to generate PUML: {e}")
         return
 
-    # Gerar PUML dinâmico a partir do JSON real
-    print("\n[UML V2] PUML GERADO DINAMICAMENTE A PARTIR DO JSON:\n")
+    # Generate dynamic PUML from real JSON
+    print("\n[UML] PUML GENERATED DYNAMICALLY FROM JSON:\n")
     puml = generate_puml_from_json(uml_json, project_dir)
     print(puml)
 
-    # Salvar PUML em arquivo
+    # Save PUML to file
     puml_path = os.path.join(project_dir, 'UML_ClassDiagram.puml')
     with open(puml_path, 'w', encoding='utf-8') as pf:
         pf.write(puml)
-    print(f"[UML V2] PUML salvo em: {puml_path}")
+    print(f"[UML] PUML saved at: {puml_path}")
 
-    # Gerar SVG a partir do PUML
+    # Generate SVG from PUML
     plantuml_jar_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'plantuml.jar'))
     svg_cmd = f'java -jar "{plantuml_jar_path}" -tsvg "{puml_path}"'
-    print(f"[UML V2] Gerando SVG com: {svg_cmd}")
+    print(f"[UML] Generating SVG with: {svg_cmd}")
     os.system(svg_cmd)
 
-    # Abrir SVG automaticamente (se possível)
+    # Automatically open SVG (if possible)
     svg_path = puml_path.replace('.puml', '.svg')
     if os.path.exists(svg_path):
-        print(f"[UML V2] Abrindo SVG: {svg_path}")
+        print(f"[UML] Opening SVG: {svg_path}")
         import webbrowser
         webbrowser.open(svg_path)
     else:
-        print(f"[UML V2] SVG não encontrado: {svg_path}")
+        print(f"[UML] SVG not found: {svg_path}")
 
 
 def generate_puml_from_json(uml_json, project_dir=None):
     """
-    Gera PUML dinâmico a partir do JSON UML real, agrupando e colorindo por estereótipo/tipo.
-    Classes sem relação são agrupadas em 'Others'.
-    Setas coloridas vivas e caixas com sombra.
-    Adiciona título com nome do projeto e versão da Unreal, e uma classe fictícia com plugins utilizados.
+    Generates dynamic PUML from real UML JSON, grouping and coloring by stereotype/type.
+    Classes without relationships are grouped in 'Others'.
+    Bright colored arrows and boxes with shadow.
+    Adds a title with project name and Unreal version, and a fictitious class with used plugins.
     """
     def clean_relation_target(name):
         return re.sub(r'^(public|protected|private)\s*:?', '', name, flags=re.IGNORECASE).strip()
 
-    # --- Lê .uproject se disponível ---
+    # --- Reads .uproject if available ---
     project_name = None
     unreal_version = None
     plugins = []
@@ -282,7 +289,7 @@ def generate_puml_from_json(uml_json, project_dir=None):
         item = {'name': e['name'], 'stereotype': 'Enum', 'fields': e.get('values', []), 'methods': []}
         all_items.append(item)
         name_to_item[e['name']] = item
-    # Relações (herança, implements, associação)
+    # Relationships (inheritance, implements, association)
     relations = []
     related_names = set()
     for c in classes:
@@ -297,7 +304,7 @@ def generate_puml_from_json(uml_json, project_dir=None):
                 relations.append((src, target, '-->', rel.get('label','assoc')))
             related_names.add(src)
             related_names.add(target)
-    # --- Detectar entidades reais e referências externas ---
+    # --- Detect real entities and external references ---
     real_entities = set(item['name'] for item in all_items)
     referenced_targets = set()
     class_to_external_refs = defaultdict(set)
@@ -309,14 +316,14 @@ def generate_puml_from_json(uml_json, project_dir=None):
                 class_to_external_refs[c['name']].add(target)
     only_referenced = referenced_targets - real_entities
 
-    # 1. Descobrir todos os estereótipos únicos
+    # 1. Discover all unique stereotypes
     stereotypes = sorted(set(item['stereotype'] for item in all_items))
-    # 2. Gerar cores automaticamente (paleta pastel)
+    # 2. Automatically generate colors (pastel palette)
     pastel_palette = [
         '#FFD580', '#B3E6B3', '#FFB3B3', '#B3D1FF', '#E0B3FF', '#FFF0B3', '#C6E2FF', '#FFCCE5', '#D5FFCC', '#FFDFBA'
     ]
     colors = {st: pastel_palette[i % len(pastel_palette)] for i, st in enumerate(stereotypes)}
-    # 3. Montar skinparam dinamicamente
+    # 3. Dynamically build skinparam
     skinparam = '\n'.join([
         f'  BackgroundColor<<{st}>> {color}' for st, color in colors.items()
     ])
@@ -324,23 +331,23 @@ def generate_puml_from_json(uml_json, project_dir=None):
     skinparam += '  nodesep 80\n  ranksep 80\n'
     skinparam += '  BackgroundColor<<ExternalReference>> #E0E0E0\n  BorderColor<<ExternalReference>> #888\n  FontColor<<ExternalReference>> #666\n  FontStyle<<ExternalReference>> italic\n'
 
-    # 4. Header do diagrama
+    # 4. Diagram header
     puml = ["@startuml", ""]
-    puml.append("top to bottom direction")  # Força layout vertical
+    puml.append("top to bottom direction")  # Forces vertical layout
     if project_name or unreal_version:
         title = f"{project_name or ''} (Unreal Engine {unreal_version or ''})".strip()
         puml.append(f"title <size:24>{title}</size>")
         puml.append("")
-    puml.append("' Definição de cores dinâmica por estereótipo, sombra, espaçamento e setas vivas")
+    puml.append("' Dynamic color definition by stereotype, shadow, spacing and vivid arrows")
     puml.append(f"skinparam class {{\n{skinparam}\n}}\n")
-    # 4b. Caixa fictícia de Plugins
+    # 4b. Fictitious Plugins box
     if plugins:
         puml.append('class "Plugins Used" as PluginsUsed <<(P,orchid)>> {')
         for pl in plugins:
             puml.append(f"  {pl}")
         puml.append('}')
         puml.append("")
-    # 5. Agrupar por estereótipo E prefixo de nome
+    # 5. Group by stereotype AND name prefix
     import collections
     def get_prefix(name):
         return name[0] if name and name[0].isalpha() else '_'
@@ -354,7 +361,7 @@ def generate_puml_from_json(uml_json, project_dir=None):
         if not items_by_prefix:
             continue
         for prefix, items in sorted(items_by_prefix.items()):
-            pkg_name = f"{st}s_{prefix}"  # Nome único para package
+            pkg_name = f"{st}s_{prefix}"  # Unique name for package
             package_names.append(pkg_name)
             puml.append(f"package \"{st}s - {prefix}*\" as {pkg_name} <<Rectangle>> {{")
             for item in items:
@@ -374,7 +381,7 @@ def generate_puml_from_json(uml_json, project_dir=None):
                 puml.append("  }")
             puml.append("}")
             puml.append("")
-    # 6. Agrupar Others (sem relação)
+    # 6. Group Others (no relationships)
     others = [item for item in all_items if item['name'] not in related_names]
     if others:
         package_names.append('Others')
@@ -392,19 +399,19 @@ def generate_puml_from_json(uml_json, project_dir=None):
             puml.append("  }")
         puml.append('}')
         puml.append("")
-    # 7. Links invisíveis para forçar alinhamento vertical dos packages
+    # 7. Invisible links to force vertical alignment of packages
     for i in range(len(package_names) - 1):
         puml.append(f"{package_names[i]} --[hidden]--> {package_names[i+1]}")
-    # 8. Relações (setas coloridas customizadas, rótulo destacado)
-    puml.append("' --- Relações ---")
+    # 8. Relationships (custom colored arrows, highlighted label)
+    puml.append("' --- Relationships ---")
     arrow_colors = {
-        '<|--': '#FF4500;line.bold', # Laranja vivo, herança
-        '..|>': '#1E90FF;line.dashed', # Azul vivo, implements
-        '-->': '#32CD32;line.bold', # Verde vivo, associação
+        '<|--': '#FF4500;line.bold', # Bright orange, inheritance
+        '..|>': '#1E90FF;line.dashed', # Bright blue, implements
+        '-->': '#32CD32;line.bold', # Bright green, association
     }
     for src, tgt, arrow, label in relations:
         if tgt in only_referenced:
-            continue  # Não desenha seta para referência externa
+            continue  # Do not draw arrow to external reference
         puml.append(f"{src} {arrow} {tgt} : <b><size:16>{label}</size></b>")
     puml.append("\n@enduml")
     return '\n'.join(puml)
@@ -414,4 +421,4 @@ if __name__ == '__main__':
     if len(sys.argv) > 1:
         main(sys.argv[1])
     else:
-        print('Uso: python CPPForUnrealEngineV2.py <ProjectDir>')
+        print('Usage: python CPPForUnrealEngine.py <ProjectDir>')
