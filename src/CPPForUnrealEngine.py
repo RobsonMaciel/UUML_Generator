@@ -363,6 +363,8 @@ def generate_puml_from_json(uml_json, project_dir=None):
                 puml.append(f"  {kind} {item['name']} {stereotype_tag} {{")
                 for f in item['fields']:
                     puml.append(f"    {f}")
+                if item['fields'] and item['methods']:
+                    puml.append("    --")
                 for m in item['methods']:
                     puml.append(f"    {m}")
                 refs = class_to_external_refs.get(item['name'])
@@ -383,6 +385,8 @@ def generate_puml_from_json(uml_json, project_dir=None):
             puml.append(f"  {kind} {item['name']} {stereotype_tag} {{")
             for f in item['fields']:
                 puml.append(f"    {f}")
+            if item['fields'] and item['methods']:
+                puml.append("    --")
             for m in item['methods']:
                 puml.append(f"    {m}")
             puml.append("  }")
