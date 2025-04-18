@@ -4,6 +4,21 @@
 
 **Uuml** is a cross-platform visual application written in Python with a modern `customtkinter` GUI, designed to automatically generate UML diagrams from Unreal Engine C++ source code.
 
+## 🟣 Unity C# UML Support (NEW!)
+
+**Now supports Unity3D C# projects:**
+- Detects and parses C# scripts for Unity, including MonoBehaviour, ScriptableObject, and custom classes.
+- Groups classes by package/stereotype with vivid color coding (e.g., <<MonoBehaviour>>, <<ScriptableObject>>, <<Other>>).
+- Displays all class methods and properties directly inside each class box.
+- All text inside class boxes is white for perfect contrast on dark backgrounds.
+- Robust PlantUML output: no duplicate class declarations, no reserved word conflicts, and fully compatible with PlantUML 1.2024+.
+- Modern, visually appealing diagrams with smooth arrows and clear grouping.
+
+**How to use for Unity:**
+1. Select your Unity project root in the app.
+2. Choose "C# for Unity" as the language.
+3. Generate and visualize a complete, color-coded UML of your Unity project's architecture!
+
 ## 🔧 Features
 
 - Unified single-file Python codebase for easy maintenance and build
