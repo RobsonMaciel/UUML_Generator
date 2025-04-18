@@ -124,7 +124,7 @@ def parse_unreal_headers_to_uml_json(project_dir):
                             current_vis = vis_match.group(1)
                             continue
                         attr_match = re.match(r'([\w:<>]+(?:\s*\*)?)\s+([\w_]+)\s*(?:;|=|\[)', bl_strip)
-                        if attr_match and '(' not in bl_strip and not bl_strip.startswith('static'):
+                        if attr_match and '(' not in bl_strip and not bl_strip.startswith('//'):
                             attr_type = clean_type(attr_match.group(1))
                             attr_name = attr_match.group(2)
                             attributes.append({'name': attr_name, 'type': attr_type, 'visibility': current_vis})
@@ -177,6 +177,11 @@ def parse_unreal_headers_to_uml_json(project_dir):
                     # Adicionar relações de associação
                     for target in sorted(rel_targets):
                         relations.append({'type': 'association', 'target': target})
+                    # Limpar o campo 'target' removendo visibilidade e espaços extras
+                    def clean_relation_target(name):
+                        return re.sub(r'^(public|protected|private)\s*:?', '', name, flags=re.IGNORECASE).strip()
+                    for rel in relations:
+                        rel['target'] = clean_relation_target(rel['target'])
                     entity = {
                         'name': class_name,
                         'type': kind,
@@ -203,15 +208,14 @@ def main(project_dir):
 
     try:
         with open(json_file, 'r', encoding='utf-8') as f:
-            json_content = f.read()
-        print("\n[UML V2] UML JSON COMPLETO:\n")
-        print(json_content)
+            uml_json = json.load(f)
     except Exception as e:
-        print(f"[UML V2] Erro ao ler e printar o JSON: {e}")
+        print(f"[UML V2] Erro ao ler o JSON para gerar PUML: {e}")
+        return
 
-    # Gerar PUML de teste com classes fictícias
-    print("\n[UML V2] PUML DE TESTE (mock dinâmico):\n")
-    mock_puml = generate_dynamic_mock_puml()
+    # Gerar PUML dinâmico a partir do JSON real
+    print("\n[UML V2] PUML GERADO DINAMICAMENTE A PARTIR DO JSON:\n")
+    mock_puml = generate_dynamic_puml_from_json(uml_json)
     print(mock_puml)
 
     # Salvar PUML em arquivo
@@ -236,29 +240,41 @@ def main(project_dir):
         print(f"[UML V2] SVG não encontrado: {svg_path}")
 
 
-def generate_dynamic_mock_puml():
+def generate_dynamic_puml_from_json(uml_json):
     """
-    Gera um PUML de teste dinâmico, com agrupamento e cores automáticas por estereótipo.
+    Gera PUML dinâmico a partir do JSON UML real, agrupando e colorindo por estereótipo/tipo.
     """
-    # Mock dinâmico: lista de classes fictícias com estereótipos variados
-    mock_classes = [
-        {'name': 'GameController', 'stereotype': 'Controller', 'fields': ['+service : GameService'], 'methods': ['+startGame() : void', '+endGame() : void']},
-        {'name': 'GameService', 'stereotype': 'Service', 'fields': ['+entity : PlayerEntity'], 'methods': ['+processMove() : bool', '+saveGame() : void']},
-        {'name': 'PlayerEntity', 'stereotype': 'Entity', 'fields': ['+id : int', '+name : String', '+score : int'], 'methods': []},
-        {'name': 'Vec2D', 'stereotype': 'UnrealStruct', 'fields': ['+float x', '+float y'], 'methods': []},
-        {'name': 'ITrainable', 'stereotype': 'Interface', 'fields': [], 'methods': ['+train(command : String) : bool']},
-        {'name': 'GameSettings', 'stereotype': 'ValueObject', 'fields': ['+difficulty : String', '+maxPlayers : int'], 'methods': []},
-    ]
-    # Relações fictícias
-    mock_relations = [
-        ('GameController', 'GameService', '-->', 'uses'),
-        ('GameService', 'PlayerEntity', '-->', 'manages'),
-        ('PlayerEntity', 'Vec2D', '-->', 'has position'),
-        ('PlayerEntity', 'ITrainable', '..|>', 'optional'),
-        ('GameController', 'GameSettings', '-->', 'configures'),
-    ]
+    def clean_relation_target(name):
+        # Remove visibilidade e espaços extras do alvo da relação
+        return re.sub(r'^(public|protected|private)\\s+:?', '', name, flags=re.IGNORECASE).strip()
+
+    # Coleta todas as classes/interfaces/enums/structs
+    classes = uml_json.get('classes', [])
+    interfaces = uml_json.get('interfaces', [])
+    enums = uml_json.get('enums', [])
+    structs = [c for c in classes if c.get('type') == 'struct']
+    # Determina estereótipos/tipos
+    all_items = []
+    for c in classes:
+        st = c.get('type', 'Class').capitalize()
+        all_items.append({'name': c['name'], 'stereotype': st, 'fields': [f"+{a['name']} : {a['type']}" for a in c.get('attributes', [])], 'methods': [f"+{m['name']}({m.get('params','')}) : {m['type']}" for m in c.get('methods', [])]})
+    for i in interfaces:
+        all_items.append({'name': i['name'], 'stereotype': 'Interface', 'fields': [], 'methods': [f"+{m['name']}({m.get('params','')}) : {m['type']}" for m in i.get('methods', [])]})
+    for e in enums:
+        all_items.append({'name': e['name'], 'stereotype': 'Enum', 'fields': e.get('values', []), 'methods': []})
+    # Relações (simplificado: só herança e implements)
+    relations = []
+    for c in classes:
+        for rel in c.get('relations', []):
+            target = clean_relation_target(rel['target'])
+            if rel['type'] == 'extends':
+                relations.append((c['name'], target, '<|--', 'inherits'))
+            elif rel['type'] == 'implements':
+                relations.append((c['name'], target, '..|>', 'implements'))
+            elif rel['type'] == 'association':
+                relations.append((c['name'], target, '-->', rel.get('label','assoc')))
     # 1. Descobrir todos os estereótipos únicos
-    stereotypes = sorted(set(cls['stereotype'] for cls in mock_classes))
+    stereotypes = sorted(set(item['stereotype'] for item in all_items))
     # 2. Gerar cores automaticamente (paleta pastel)
     pastel_palette = [
         '#FFD580', '#B3E6B3', '#FFB3B3', '#B3D1FF', '#E0B3FF', '#FFF0B3', '#C6E2FF', '#FFCCE5', '#D5FFCC', '#FFDFBA'
@@ -272,21 +288,21 @@ def generate_dynamic_mock_puml():
     puml = ["@startuml", "", "' Definição de cores dinâmica por estereótipo", f"skinparam class {{\n{skinparam}\n}}", ""]
     for st in stereotypes:
         puml.append(f"package \"{st}s\" <<Rectangle>> {{")
-        for cls in mock_classes:
-            if cls['stereotype'] == st:
-                kind = 'struct' if st == 'UnrealStruct' else ('interface' if st == 'Interface' else 'class')
+        for item in all_items:
+            if item['stereotype'] == st:
+                kind = 'struct' if st.lower() == 'struct' else ('interface' if st.lower() == 'interface' else ('enum' if st.lower() == 'enum' else 'class'))
                 stereotype_tag = f"<<{st}>>"
-                puml.append(f"  {kind} {cls['name']} {stereotype_tag} {{")
-                for f in cls['fields']:
+                puml.append(f"  {kind} {item['name']} {stereotype_tag} {{")
+                for f in item['fields']:
                     puml.append(f"    {f}")
-                for m in cls['methods']:
+                for m in item['methods']:
                     puml.append(f"    {m}")
                 puml.append("  }")
         puml.append("}")
         puml.append("")
     # 5. Relações
     puml.append("' --- Relações ---")
-    for src, tgt, arrow, label in mock_relations:
+    for src, tgt, arrow, label in relations:
         puml.append(f"{src} {arrow} {tgt} : {label}")
     puml.append("\n@enduml")
     return '\n'.join(puml)
