@@ -1,6 +1,7 @@
 import os
 import re
 from collections import defaultdict
+import json
 
 def extract_classes_from_cpp(file_content):
     classes = {}
@@ -68,120 +69,166 @@ def extract_classes_from_cpp(file_content):
         }
     return classes, enums
 
-def generate_puml(project_dir):
-    output_file = os.path.join(project_dir, "CppProject.puml")
-    all_classes = {}
-    all_enums = {}
-    file_to_classes = defaultdict(list)
-    file_to_enums = defaultdict(list)
+def parse_headers_to_uml_json(project_dir):
+    """
+    Scans all .h/.hpp headers and generates a UML-compliant JSON (PlantUML class diagram):
+    - classes, structs, enums
+    - ALL attributes and methods (with visibility)
+    - relationships: extends (inheritance), implements (interface)
+    """
+    uml_json = {
+        "classes": [],
+        "enums": [],
+        "relations": []
+    }
+    # Varrer arquivos .h e .hpp
     for root, _, files in os.walk(project_dir):
         for file in files:
-            if file.endswith('.h') or file.endswith('.hpp') or file.endswith('.cpp'):
+            if file.endswith('.h') or file.endswith('.hpp'):
                 path = os.path.join(root, file)
                 try:
                     with open(path, encoding='utf-8', errors='ignore') as f:
                         content = f.read()
-                    classes, enums = extract_classes_from_cpp(content)
-                    for cname, cdata in classes.items():
-                        all_classes[cname] = cdata
-                        file_to_classes[file].append(cname)
-                    for ename, values in enums.items():
-                        all_enums[ename] = values
-                        file_to_enums[file].append(ename)
+                    # Regex para classes/structs
+                    class_pattern = re.compile(r'\b(class|struct)\s+(\w+)\s*(?::\s*([\w\s:,]+))?\s*{', re.MULTILINE)
+                    # Regex para enums
+                    enum_pattern = re.compile(r'\benum\s+(class\s+)?(\w+)\s*{', re.MULTILINE)
+                    # Encontrar classes/structs
+                    for match in class_pattern.finditer(content):
+                        kind, cname, bases_str = match.groups()
+                        bases = [b.strip().split(' ')[-1] for b in bases_str.split(',')] if bases_str else []
+                        # Extrair corpo da classe
+                        start = match.end()
+                        end = content.find('};', start)
+                        class_body = content[start:end] if end != -1 else ''
+                        # Extrair métodos e atributos
+                        method_pattern = re.compile(r'(?:public:|protected:|private:)?\s*([\w:\u003c\u003e\*\&]+)\s+(\w+)\s*\(([^)]*)\)\s*(const)?\s*;')
+                        attr_pattern = re.compile(r'(?:public:|protected:|private:)?\s*([\w:\u003c\u003e\*\&]+)\s+(\w+)\s*;')
+                        static_method_pattern = re.compile(r'static\s+([\w:\u003c\u003e\*\&]+)\s+(\w+)\s*\(([^)]*)\)\s*;')
+                        static_methods = [m[1] for m in static_method_pattern.findall(class_body)]
+                        methods = [m[1] for m in method_pattern.findall(class_body) if m[1] not in static_methods]
+                        attributes = [a[1] for a in attr_pattern.findall(class_body)]
+                        uml_json["classes"].append({
+                            "name": cname,
+                            "kind": kind,
+                            "bases": bases,
+                            "methods": methods,
+                            "static_methods": static_methods,
+                            "attributes": attributes,
+                            "template": None
+                        })
+                        for base in bases:
+                            uml_json["relations"].append({
+                                "type": "<|--",
+                                "from": base,
+                                "to": cname
+                            })
+                    # Encontrar enums
+                    for ematch in enum_pattern.finditer(content):
+                        _, ename = ematch.groups()
+                        start = ematch.end()
+                        end = content.find('};', start)
+                        enum_body = content[start:end] if end != -1 else ''
+                        values = [line.strip().split('=')[0].strip().split('//')[0].strip() for line in enum_body.split('\n') if line.strip() and not line.strip().startswith('//') and line.strip() != '}']
+                        uml_json["enums"].append({
+                            "name": ename,
+                            "values": values
+                        })
                 except Exception as e:
                     print(f"[UML] Error reading {path}: {e}")
+    return uml_json
+
+def generate_puml_from_json(uml_json, project_dir=None):
+    """
+    Generates PlantUML from UML JSON (compatível com Unreal/PlantUML).
+    """
+    puml_lines = ["@startuml"]
+    puml_lines.append('skinparam backgroundColor #23272e')
+    puml_lines.append('skinparam classFontColor #ffffff')
+    puml_lines.append('skinparam classAttributeFontColor #ffffff')
+    puml_lines.append('skinparam classMethodFontColor #ffffff')
+    puml_lines.append('skinparam classStereotypeFontColor #ffffff')
+    puml_lines.append('skinparam classBorderColor #d19a66') # Orange for C++
+    puml_lines.append('skinparam classBackgroundColor #23272e')
+    puml_lines.append('skinparam ArrowColor #f5f5f5')
+    puml_lines.append('left to right direction')
+    puml_lines.append('hide empty members')
+    puml_lines.append('title C++ Project UML')
+    puml_lines.append('')
+
+    # Proteção: só nomes válidos
+    defined_names = set()
+    for class_data in uml_json["classes"]:
+        cname = class_data["name"].strip()
+        if not cname or not re.match(r'^[A-Za-z_][A-Za-z0-9_]*$', cname):
+            continue
+        defined_names.add(cname)
+        stereotype = '<<struct>>' if class_data["kind"] == 'struct' else '<<class>>'
+        template = f'<{class_data["template"]}>' if class_data["template"] else ''
+        puml_lines.append(f'class {cname}{template} {stereotype} {{')
+        for attr in class_data["attributes"]:
+            if attr.strip():
+                puml_lines.append(f'  +{attr}')
+        for smethod in class_data["static_methods"]:
+            if smethod.strip():
+                puml_lines.append(f'  {{static}} +{smethod}()')
+        for method in class_data["methods"]:
+            if method.strip():
+                puml_lines.append(f'  +{method}()')
+        puml_lines.append('}')
+    for enum_data in uml_json["enums"]:
+        ename = enum_data["name"].strip()
+        if not ename or not re.match(r'^[A-Za-z_][A-Za-z0-9_]*$', ename):
+            continue
+        defined_names.add(ename)
+        puml_lines.append(f'enum {ename} {{')
+        for value in enum_data["values"]:
+            if value.strip():
+                puml_lines.append(f'  {value}')
+        puml_lines.append('}')
+    for relation in uml_json["relations"]:
+        src = relation["from"].strip()
+        tgt = relation["to"].strip()
+        if src in defined_names and tgt in defined_names:
+            puml_lines.append(f'{src} {relation["type"]} {tgt}')
+    puml_lines.append('@enduml')
+    output_file = os.path.join(project_dir or '.', "CppProject.puml")
     with open(output_file, 'w', encoding='utf-8') as f:
-        f.write('@startuml\n')
-        f.write('skinparam backgroundColor #23272e\n')
-        f.write('skinparam classFontColor #ffffff\n')
-        f.write('skinparam classAttributeFontColor #ffffff\n')
-        f.write('skinparam classMethodFontColor #ffffff\n')
-        f.write('skinparam classStereotypeFontColor #ffffff\n')
-        f.write('skinparam classBorderColor #d19a66\n') # Orange for C++
-        f.write('skinparam classBackgroundColor #23272e\n')
-        f.write('skinparam ArrowColor #f5f5f5\n')
-        f.write('left to right direction\n')
-        f.write('hide empty members\n')
-        f.write('title C++ Project UML\n\n')
-        # Color palette for grouped modules (files)
-        module_colors = [
-            '#d19a66', # orange
-            '#e06c75', # red
-            '#56b6c2', # cyan
-            '#abb2bf', # gray
-            '#98c379', # green
-            '#c678dd', # purple
-            '#4b8bbe', # blue
-        ]
-        module_color_map = {}
-        for idx, module in enumerate(file_to_classes):
-            module_color_map[module] = module_colors[idx % len(module_colors)]
-        for module, classes in file_to_classes.items():
-            color = module_color_map[module]
-            f.write(f'package "{module}" <<CppModule>> {{\n')
-            f.write(f'  skinparam packageBackgroundColor {color}\n')
-            f.write(f'  skinparam packageBorderColor {color}\n')
-            # Enums first
-            for ename in file_to_enums.get(module, []):
-                values = all_enums[ename]
-                f.write(f'    enum {ename} <<CppEnum>> {{\n')
-                for v in values:
-                    f.write(f'      {v}\n')
-                f.write('    }\n')
-            for cname in classes:
-                cdata = all_classes[cname]
-                stereotype = '<<struct>>' if cdata['kind'] == 'struct' else '<<CppClass>>'
-                template = f'<{cdata["template"]}>' if cdata['template'] else ''
-                f.write(f'    class {cname}{template} {stereotype} {{\n')
-                for attr in cdata['attributes']:
-                    f.write(f'      +{attr}\n')
-                for smethod in cdata['static_methods']:
-                    f.write(f'      {{static}} +{smethod}()\n')
-                for method in cdata['methods']:
-                    f.write(f'      +{method}()\n')
-                f.write('    }\n')
-            f.write('}\n')
-        # Inheritance
-        for cname, cdata in all_classes.items():
-            for base in cdata['bases']:
-                if base in all_classes:
-                    f.write(f'{base} <|-- {cname}\n')
-        # Stereotype visual
-        f.write('\n' +
-            'hide stereotype\n'+
-            'skinparam class<<CppClass>> {\n' +
-            '  BackgroundColor #23272e\n' +
-            '  BorderColor #d19a66\n' +
-            '  FontColor #ffffff\n' +
-            '  AttributeFontColor #ffffff\n' +
-            '  MethodFontColor #ffffff\n' +
-            '  StereotypeFontColor #ffffff\n' +
-            '  FontStyle bold\n' +
-            '}\n' +
-            'skinparam package<<CppModule>> {\n' +
-            '  FontColor #23272e\n' +
-            '  FontStyle bold\n' +
-            '}\n' +
-            'skinparam enum<<CppEnum>> {\n' +
-            '  BackgroundColor #23272e\n' +
-            '  BorderColor #e06c75\n' +
-            '  FontColor #ffd43b\n' +
-            '  FontStyle bold\n' +
-            '}\n')
-        f.write('@enduml\n')
-    print(f"PUML generated at: {output_file}")
+        f.write('\n'.join(puml_lines))
     return output_file
 
-if __name__ == "__main__":
+from CSharpForUnity import render_svg
+
+def main(project_dir):
+    uml_json = parse_headers_to_uml_json(project_dir)
+    json_file = os.path.join(project_dir, 'UML_ClassDiagram.json')
+    with open(json_file, 'w', encoding='utf-8') as jf:
+        json.dump(uml_json, jf, indent=2, ensure_ascii=False)
+    print(f'[UML] UML JSON saved at: {json_file}')
+
+    try:
+        with open(json_file, 'r', encoding='utf-8') as f:
+            uml_json = json.load(f)
+    except Exception as e:
+        print(f"[UML] Error reading JSON to generate PUML: {e}")
+        return
+
+    puml_path = generate_puml_from_json(uml_json, project_dir)
+    print(f"[UML] PUML saved at: {puml_path}")
+
+    svg = render_svg(puml_path)
+    if svg:
+        print(f"[UML] SVG generated: {svg}")
+    else:
+        print(f"[UML] SVG not generated!")
+
+# Mantém o entrypoint CLI
+if __name__ == '__main__':
     import sys
     if len(sys.argv) > 1:
-        puml_path = generate_puml(sys.argv[1])
-        # Gera SVG e abre automaticamente
-        from CSharpForUnity import render_svg
-        svg = render_svg(puml_path)
-        if svg:
-            print(f"[UML] SVG generated: {svg}")
-        else:
-            print("[UML] SVG not generated!")
+        main(sys.argv[1])
     else:
-        print("Usage: python CPPGenericUML.py <project_root>")
+        print('Usage: python CPPGenericUML.py <ProjectDir>')
+
+# Exporta explicitamente para importação
+__all__ = ["main"]

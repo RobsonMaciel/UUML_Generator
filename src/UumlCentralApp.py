@@ -54,58 +54,75 @@ def get_project_dir():
         return os.path.dirname(os.path.abspath(__file__))
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="UML Central App (console)")
-    parser.add_argument("--project", "-p", required=False, help="Project path (root directory)")
-    parser.add_argument("--type", "-t", required=False, choices=["cpp4ue", "cpp", "unity", "python"], help="Project type: cpp4ue, cpp, unity, python")
-    args = parser.parse_args()
+    import sys
+    try:
+        parser = argparse.ArgumentParser(description="UML Central App (console)")
+        parser.add_argument("--project", "-p", required=False, help="Project path (root directory)")
+        parser.add_argument("--type", "-t", required=False, choices=["cpp4ue", "cpp", "unity", "python"], help="Project type: cpp4ue, cpp, unity, python")
+        args = parser.parse_args()
 
-    # Definir diretório do projeto
-    project_dir = args.project if args.project else get_project_dir()
-    # Definir tipo do projeto
-    tipo = args.type if args.type else detect_project_type(project_dir)
-    if not tipo:
-        print("[UML] ERROR: Could not detect project type automatically. Please specify --type.")
-        print("[UML] Supported types: cpp4ue, cpp, unity, python.")
-        if getattr(sys, 'frozen', False):
-            input('Press any key to exit...')
-        sys.exit(1)
+        # Definir diretório do projeto
+        project_dir = args.project if args.project else get_project_dir()
+        # Definir tipo do projeto
+        tipo = args.type if args.type else detect_project_type(project_dir)
+        if not tipo:
+            print("[UML] ERROR: Could not detect project type automatically. Please specify --type.")
+            print("[UML] Supported types: cpp4ue, cpp, unity, python.")
+            if getattr(sys, 'frozen', False):
+                input('Pressione ENTER para sair...')
+            sys.exit(1)
 
-    if tipo == "cpp4ue":
-        from CPPForUnrealEngine import main as gen_cpp4ue
-        print(f"[UML] Generating UML for C++ Unreal in {project_dir}")
-        try:
-            gen_cpp4ue(project_dir)
-        except Exception as e:
-            print(f"[ERROR] Execution interrupted: {e}")
-        print("[UML] Finished!")
-    elif tipo == "cpp":
-        from CPPGenericUML import generate_puml as gen_cpp
-        print(f"[UML] Generating UML for pure C++ in {project_dir}")
-        gen_cpp(project_dir)
-        print("[UML] Finished!")
-    elif tipo == "unity":
-        from CSharpForUnity import generate_puml as gen_unity, render_svg
-        print(f"[UML] Generating UML for Unity C# in {project_dir}")
-        puml_path = gen_unity(project_dir)
-        svg = render_svg(puml_path)
-        if svg:
-            print(f"[UML] SVG generated: {svg}")
+        if tipo == "cpp4ue":
+            from CPPForUnrealEngine import main as gen_cpp4ue
+            print(f"[UML] Generating UML for C++ Unreal in {project_dir}")
+            try:
+                gen_cpp4ue(project_dir)
+            except Exception as e:
+                print(f"[ERROR] Execution interrupted: {e}")
+            print("[UML] Finished!")
+            if getattr(sys, 'frozen', False):
+                input('Pressione ENTER para sair...')
+        elif tipo == "cpp":
+            from CPPGenericUML import main as gen_cpp
+            from CSharpForUnity import render_svg
+            print(f"[UML] Generating UML for pure C++ in {project_dir}")
+            gen_cpp(project_dir)
+            print("[UML] Finished!")
+            if getattr(sys, 'frozen', False):
+                input('Pressione ENTER para sair...')
+        elif tipo == "unity":
+            from CSharpForUnity import generate_puml as gen_unity, render_svg
+            print(f"[UML] Generating UML for Unity C# in {project_dir}")
+            puml_path = gen_unity(project_dir)
+            svg = render_svg(puml_path)
+            if svg:
+                print(f"[UML] SVG generated: {svg}")
+            else:
+                print("[UML] SVG not generated!")
+            print("[UML] Finished!")
+            if getattr(sys, 'frozen', False):
+                input('Pressione ENTER para sair...')
+        elif tipo == "python":
+            from PythonUML import generate_puml as gen_py
+            from CSharpForUnity import render_svg
+            print(f"[UML] Generating UML for Python in {project_dir}")
+            puml_path = gen_py(project_dir)
+            svg = render_svg(puml_path)
+            if svg:
+                print(f"[UML] SVG generated: {svg}")
+            else:
+                print("[UML] SVG not generated!")
+            print("[UML] Finished!")
+            if getattr(sys, 'frozen', False):
+                input('Pressione ENTER para sair...')
         else:
-            print("[UML] SVG not generated!")
-        print("[UML] Finished!")
-    elif tipo == "python":
-        from PythonUML import generate_puml as gen_py
-        from CSharpForUnity import render_svg
-        print(f"[UML] Generating UML for Python in {project_dir}")
-        puml_path = gen_py(project_dir)
-        svg = render_svg(puml_path)
-        if svg:
-            print(f"[UML] SVG generated: {svg}")
-        else:
-            print("[UML] SVG not generated!")
-        print("[UML] Finished!")
-    else:
-        print("Unrecognized project type. Use --type among: cpp4ue, cpp, unity, python.")
-        if getattr(sys, 'frozen', False):
-            input('Press any key to exit...')
-        sys.exit(1)
+            print("Unrecognized project type. Use --type among: cpp4ue, cpp, unity, python.")
+            if getattr(sys, 'frozen', False):
+                input('Pressione ENTER para sair...')
+            sys.exit(1)
+    except Exception as e:
+        import traceback
+        print('--- ERRO DE EXECUÇÃO ---')
+        print(e)
+        traceback.print_exc()
+    input('\nPressione ENTER para sair...')
