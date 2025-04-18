@@ -6,9 +6,7 @@ import webbrowser
 import re
 import json
 from collections import defaultdict
-
-ctk.set_appearance_mode("System")
-ctk.set_default_color_theme("blue")
+import argparse
 
 def clean_header_text(text):
     text = re.sub(r"//.*", "", text)
@@ -21,32 +19,91 @@ def clean_header_text(text):
     return text
 
 def parse_cleaned_header(content):
-    class_regex = r"UCLASS\s*\(.*?\)\s*class\s+\w+_API\s+(\w+)\s*:\s*public\s+([\w:]+)"
-    method_regex = r"(?:UFUNCTION\s*\(.*?\)\s*)?(?:(?:virtual|static|inline)\s+)*([\w:<>&*\s]+?)\s+(\w+)\s*\(([^)]*)\)\s*(?:const)?\s*(?:override)?\s*(?:final)?\s*;"
-    attribute_regex = r"(?:UPROPERTY\s*\(.*?\)\s*)?([\w:<>&*]+(?:\s*<.*?>)?(?:\s*[*&])?)\s+(\w+)\s*(?:=\s*[^;]*)?\s*;"
+    # Regex para classes, structs, interfaces Unreal e enums
+    class_pattern = re.compile(
+        r'UCLASS\s*(?:\(.*?\))?\s*\n\s*class\s+(?:[A-Z_]+_API\s+)?(\w+)(?:\s*:\s*([A-Za-z0-9_:<> ,]+))?\s*\{',
+        re.DOTALL | re.MULTILINE)
+    struct_pattern = re.compile(
+        r'USTRUCT\s*(?:\(.*?\))?\s*\n\s*struct\s+(?:[A-Z_]+_API\s+)?(\w+)(?:\s*:\s*([A-Za-z0-9_:<> ,]+))?\s*\{',
+        re.DOTALL | re.MULTILINE)
+    # Structs SEM macro Unreal
+    struct_plain_pattern = re.compile(
+        r'struct\s+(?:[A-Z_]+_API\s+)?(\w+)(?:\s*:\s*([A-Za-z0-9_:<> ,]+))?\s*\{',
+        re.DOTALL | re.MULTILINE)
+    # Interface Unreal
+    interface_pattern = re.compile(
+        r'UINTERFACE\s*(?:\(.*?\))?\s*\n\s*class\s+(?:[A-Z_]+_API\s+)?(U\w+)\s*:\s*public\s+UInterface\s*\{',
+        re.DOTALL | re.MULTILINE)
+    interface_impl_pattern = re.compile(
+        r'class\s+(?:[A-Z_]+_API\s+)?(I\w+)\s*\{',
+        re.DOTALL | re.MULTILINE)
+    # Enums Unreal
+    enum_pattern = re.compile(
+        r'UENUM\s*(?:\(.*?\))?\s*\n\s*enum\s+(?:class\s+)?(\w+)\s*:?\s*\w*\s*\{([^}]*)\}',
+        re.DOTALL | re.MULTILINE)
+    # Enums C++ comuns
+    enum_plain_pattern = re.compile(
+        r'enum\s+(?:class\s+)?(\w+)\s*:?\s*\w*\s*\{([^}]*)\}',
+        re.DOTALL | re.MULTILINE)
 
-    classes = re.findall(class_regex, content)
-    methods = re.findall(method_regex, content)
-
+    classes = []
+    structs = []
+    enums = []
+    interfaces = []
+    methods = []
     attributes = []
-    for attr_type, attr_name in re.findall(attribute_regex, content):
-        if not attr_type.startswith("class") and "override" not in attr_type and attr_type.strip() != "const":
-            attributes.append((attr_type.strip(), attr_name.strip()))
 
-    return classes, methods, attributes
+    # Classes Unreal
+    for match in class_pattern.finditer(content):
+        name = match.group(1)
+        parent = match.group(2) if match.lastindex and match.lastindex >= 2 else None
+        classes.append((name, parent))
+    # Structs Unreal
+    for match in struct_pattern.finditer(content):
+        name = match.group(1)
+        parent = match.group(2) if match.lastindex and match.lastindex >= 2 else None
+        structs.append((name, parent))
+    # Structs SEM macro Unreal
+    for match in struct_plain_pattern.finditer(content):
+        name = match.group(1)
+        parent = match.group(2) if match.lastindex and match.lastindex >= 2 else None
+        structs.append((name, parent))
+    # Interfaces Unreal
+    for match in interface_pattern.finditer(content):
+        name = match.group(1)
+        interfaces.append((name, 'UInterface'))
+    for match in interface_impl_pattern.finditer(content):
+        name = match.group(1)
+        interfaces.append((name, 'IInterface'))
+    # Enums Unreal
+    for match in enum_pattern.finditer(content):
+        enum_name = match.group(1)
+        values_block = match.group(2)
+        values = [v.strip().split('=')[0].split(' ')[0] for v in values_block.split(',') if v.strip()]
+        enums.append((enum_name, values))
+    # Enums C++ comuns
+    for match in enum_plain_pattern.finditer(content):
+        enum_name = match.group(1)
+        values_block = match.group(2)
+        values = [v.strip().split('=')[0].split(' ')[0] for v in values_block.split(',') if v.strip()]
+        enums.append((enum_name, values))
+
+    # TODO: aprimorar extração de métodos e atributos se necessário
+
+    return classes, structs, enums, methods, attributes
 
 def parse_file(file_path):
     try:
         if not file_path.endswith(".h"):
-            return [], [], []
+            return [], [], [], [], []
 
-        with open(file_path, "r", encoding="utf-8") as file:
+        with open(file_path, "r", encoding="utf-8", errors="ignore") as file:
             raw = file.read()
 
         cleaned = clean_header_text(raw)
         return parse_cleaned_header(cleaned)
     except Exception:
-        return [], [], []
+        return [], [], [], [], []
 
 def extract_class_name(type_str):
     type_str = type_str.replace("const", "").strip()
@@ -58,6 +115,8 @@ def extract_class_name(type_str):
     return None
 
 def classify_group_by_base(parent):
+    if not parent:
+        return "Others"
     parent = parent.replace("public ", "").replace("virtual ", "")
     if "GameMode" in parent:
         return "GameModes"
@@ -95,91 +154,220 @@ def get_project_info(base_path):
     except:
         return "Project", "Unknown"
 
-def generate_puml(project_dir):
+def generate_puml(project_dir, entidades_txt_path=None):
     base_path = os.path.abspath(os.path.join(project_dir, ".."))
-    project_name, engine_version = get_project_info(base_path)
-    output_file = os.path.join(base_path, f"{project_name}.puml")
+    project_name, engine_version = get_project_info(project_dir)
+    output_file = os.path.join(project_dir, f"{project_name}.puml")
 
-    class_groups = defaultdict(list)
-    relations = set()
+    all_classes = []
+    all_structs = []
+    all_enums = []
+    all_interfaces = []
+    all_methods = []
+    all_attributes = []
 
+    files_found = 0
+    files_parsed = 0
+    entidades_coletadas = set()
+
+    print(f"[DEBUG] Procurando arquivos .h em {project_dir}")
     for root, _, files in os.walk(project_dir):
         for file in files:
             if file.endswith(".h"):
+                files_found += 1
                 file_path = os.path.join(root, file)
-                classes, methods, attributes = parse_file(file_path)
+                print(f"[DEBUG] Processando: {file_path}")
+                try:
+                    with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+                        content = f.read()
+                    cleaned = clean_header_text(content)
+                    classes, structs, enums, methods, attributes = parse_cleaned_header(cleaned)
+                    files_parsed += 1
+                    # Coletar nomes para entidades.txt
+                    for c in classes:
+                        if isinstance(c, (list, tuple)) and len(c) > 0:
+                            entidades_coletadas.add(c[0])
+                    for s in structs:
+                        if isinstance(s, (list, tuple)) and len(s) > 0:
+                            entidades_coletadas.add(s[0])
+                    for e in enums:
+                        if isinstance(e, (list, tuple)) and len(e) > 0:
+                            entidades_coletadas.add(e[0])
+                    # Acumular todas as entidades extraídas de todos os arquivos
+                    if classes:
+                        all_classes.extend(classes)
+                    if structs:
+                        all_structs.extend(structs)
+                    if enums:
+                        all_enums.extend(enums)
+                    if methods:
+                        all_methods.extend(methods)
+                    if attributes:
+                        all_attributes.extend(attributes)
+                except Exception as e:
+                    print(f"[WARN] Failed to parse {file_path}: {e}")
+    # Fallback defensivo: garantir que os dicionários existam antes do uso
+    if 'class_attrs' not in locals() or class_attrs is None:
+        class_attrs = defaultdict(list)
+    if 'class_methods' not in locals() or class_methods is None:
+        class_methods = defaultdict(list)
 
-                for cls, parent in classes:
-                    group_name = classify_group_by_base(parent)
-                    class_groups[group_name].append((cls, parent, attributes, methods))
+    # Mensagem explícita se nenhum arquivo .h encontrado ou processado
+    if files_found == 0:
+        print(f"[ERRO] Nenhum arquivo .h encontrado em {project_dir}. Nada foi processado.")
+    elif files_parsed == 0:
+        print(f"[ERRO] Nenhum arquivo .h pôde ser processado em {project_dir}.")
 
-                    for attr_type, _ in attributes:
-                        related = extract_class_name(attr_type)
-                        if related and related != cls:
-                            relations.add((cls, related))
+    # Geração do PUML mínimo se não houver classes válidas
+    if not any([all_classes, all_structs, all_enums]):
+        with open(output_file, "w", encoding="utf-8") as f:
+            f.write("@startuml\n")
+            f.write(f"title {project_name} - Unreal Engine {engine_version} (sem classes válidas)\n")
+            f.write("' Nenhuma classe/struct/enum válida encontrada.\n")
+            f.write("@enduml\n")
+        print(f"[WARN] Nenhuma classe/struct/enum válida encontrada. PUML mínimo gerado em {output_file}")
+        return output_file  # Retorna imediatamente para evitar NameError
 
-    with open(output_file, "w", encoding="utf-8") as output:
-        output.write("@startuml\n")
-        output.write("left to right direction\n")
-        output.write("skinparam TitleFontColor #ffffff\n")
-        output.write("skinparam ranksep 1.3\n")
-        output.write("skinparam nodesep 1.0\n")
-        output.write("skinparam linetype polyline\n")
-        output.write("skinparam ArrowThickness 2\n")
-        output.write("skinparam ArrowFontColor #ffffff\n")
-        output.write("skinparam backgroundColor #1e1e1e\n")
-        output.write("skinparam classBackgroundColor #3c3c3c\n")
-        output.write("skinparam classBorderColor #00bfff\n")
-        output.write("skinparam classFontColor #ffffff\n")
-        output.write("skinparam classAttributeFontColor #ffffff\n")
-        output.write("skinparam classMethodFontColor #ffffff\n")
-        output.write("skinparam classArrowColor #00bfff\n")
-        output.write("skinparam classAttributeIconSize 0\n")
-        output.write("skinparam dpi 150\n")
-        output.write("skinparam package {\n")
-        output.write("  BackgroundColor #2c2c2c\n")
-        output.write("  BorderColor #00bfff\n")
-        output.write("  FontColor #ffffff\n")
-        output.write("  BackgroundColor<<Actors>> #193c7c\n")
-        output.write("  BorderColor<<Actors>> #1e90ff\n")
-        output.write("  BackgroundColor<<Characters>> #ff8c00\n")
-        output.write("  BorderColor<<Characters>> #ff6600\n")
-        output.write("  BackgroundColor<<Controllers>> #1f4e4e\n")
-        output.write("  BorderColor<<Controllers>> #00ced1\n")
-        output.write("  BackgroundColor<<GameModes>> #3c245c\n")
-        output.write("  BorderColor<<GameModes>> #a020f0\n")
-        output.write("  BackgroundColor<<Components>> #2c72a8\n")
-        output.write("  BorderColor<<Components>> #00bfff\n")
-        output.write("  BackgroundColor<<HUD>> #1d5e3b\n")
-        output.write("  BorderColor<<HUD>> #00ff7f\n")
-        output.write("  BackgroundColor<<Helpers>> #484848\n")
-        output.write("  BorderColor<<Helpers>> #aaaaaa\n")
-        output.write("  BackgroundColor<<DataAssets>> #553300\n")
-        output.write("  BorderColor<<DataAssets>> #ffaa00\n")
-        output.write("  BackgroundColor<<Persistence>> #006060\n")
-        output.write("  BorderColor<<Persistence>> #00cccc\n")
-        output.write("  BackgroundColor<<BlueprintLibraries>> #2e003e\n")
-        output.write("  BorderColor<<BlueprintLibraries>> #b266ff\n")
-        output.write("  BackgroundColor<<Others>> #404040\n")
-        output.write("  BorderColor<<Others>> #999999\n")
-        output.write("}\n")
-        output.write(f"title {project_name} - Unreal Engine {engine_version}\n")
+    # Color map for groups (Unreal stereotypes)
+    group_colors = {
+        "Actors": "#193c7c",
+        "Characters": "#ff8c00",
+        "Controllers": "#1f4e4e",
+        "GameModes": "#3c245c",
+        "Components": "#2c72a8",
+        "HUD": "#1d5e3b",
+        "Helpers": "#484848",
+        "DataAssets": "#553300",
+        "Persistence": "#006060",
+        "BlueprintLibraries": "#2e003e",
+        "Others": "#404040",
+    }
 
+    with open(output_file, "w", encoding="utf-8") as f:
+        f.write("@startuml\n")
+        f.write("left to right direction\n")
+        f.write("skinparam TitleFontColor #ffffff\n")
+        f.write("skinparam ranksep 1.3\n")
+        f.write("skinparam nodesep 1.0\n")
+        f.write("skinparam linetype polyline\n")
+        f.write("skinparam ArrowThickness 2\n")
+        f.write("skinparam ArrowFontColor #ffffff\n")
+        f.write("skinparam backgroundColor #1e1e1e\n")
+        f.write("skinparam classBackgroundColor #3c3c3c\n")
+        f.write("skinparam classBorderColor #00bfff\n")
+        f.write("skinparam classFontColor #ffffff\n")
+        f.write("skinparam classAttributeFontColor #ffffff\n")
+        f.write("skinparam classMethodFontColor #ffffff\n")
+        f.write("skinparam classArrowColor #00bfff\n")
+        f.write("skinparam classAttributeIconSize 0\n")
+        f.write("skinparam dpi 150\n")
+        f.write("skinparam package {\n")
+        f.write("  BackgroundColor #2c2c2c\n")
+        f.write("  BorderColor #00bfff\n")
+        f.write("  FontColor #ffffff\n")
+        f.write("  BackgroundColor<<Actors>> #193c7c\n")
+        f.write("  BorderColor<<Actors>> #1e90ff\n")
+        f.write("  BackgroundColor<<Characters>> #ff8c00\n")
+        f.write("  BorderColor<<Characters>> #ff6600\n")
+        f.write("  BackgroundColor<<Controllers>> #1f4e4e\n")
+        f.write("  BorderColor<<Controllers>> #00ced1\n")
+        f.write("  BackgroundColor<<GameModes>> #3c245c\n")
+        f.write("  BorderColor<<GameModes>> #a020f0\n")
+        f.write("  BackgroundColor<<Components>> #2c72a8\n")
+        f.write("  BorderColor<<Components>> #00bfff\n")
+        f.write("  BackgroundColor<<HUD>> #1d5e3b\n")
+        f.write("  BorderColor<<HUD>> #00ff7f\n")
+        f.write("  BackgroundColor<<Helpers>> #484848\n")
+        f.write("  BorderColor<<Helpers>> #aaaaaa\n")
+        f.write("  BackgroundColor<<DataAssets>> #553300\n")
+        f.write("  BorderColor<<DataAssets>> #ffaa00\n")
+        f.write("  BackgroundColor<<Persistence>> #006060\n")
+        f.write("  BorderColor<<Persistence>> #00cccc\n")
+        f.write("  BackgroundColor<<BlueprintLibraries>> #2e003e\n")
+        f.write("  BorderColor<<BlueprintLibraries>> #b266ff\n")
+        f.write("  BackgroundColor<<Others>> #404040\n")
+        f.write("  BorderColor<<Others>> #999999\n")
+        f.write("}\n")
+        f.write(f"title {project_name} - Unreal Engine {engine_version}\n")
+
+        # --- Pacote de Enums (mostrar todos os enums extraídos) ---
+        if all_enums:
+            f.write(f'package "Enums" <<UnrealGroup>> {{\n')
+            for enum_item in all_enums:
+                enum_name = None
+                values = []
+                if isinstance(enum_item, (list, tuple)):
+                    if len(enum_item) == 2 and isinstance(enum_item[1], (list, tuple)):
+                        enum_name = enum_item[0]
+                        values = enum_item[1]
+                if not (enum_name and isinstance(values, (list, tuple))):
+                    continue
+                f.write(f'  enum {enum_name} <<UnrealEnum>> {{\n')
+                for v in values:
+                    f.write(f'    {v}\n')
+                f.write('  }\n')
+            f.write('}\n')
+
+        # --- Pacote de Structs (mostrar todos os structs extraídos) ---
+        if all_structs:
+            f.write(f'package "Structs" <<UnrealGroup>> {{\n')
+            for struct_item in all_structs:
+                name = None
+                parent = None
+                if isinstance(struct_item, (list, tuple)):
+                    name = struct_item[0]
+                    if len(struct_item) > 1:
+                        parent = struct_item[1]
+                if not name:
+                    continue
+                f.write(f'  struct {name} <<UnrealStruct>> {{\n')
+                # (Opcional: atributos)
+                # Aqui, se desejar, pode buscar atributos por nome
+                f.write('  }\n')
+            f.write('}\n')
+
+        # --- Pacote de Interfaces (opcional, caso queira exibir) ---
+        if 'interfaces' in locals() and all_interfaces:
+            f.write(f'package "Interfaces" <<UnrealGroup>> {{\n')
+            for iface in all_interfaces:
+                name = iface[0]
+                f.write(f'  interface {name} <<UnrealInterface>> {{}}\n')
+            f.write('}\n')
+
+        # --- Classes e demais grupos ---
+        class_groups = defaultdict(list)
+        for item in all_classes:
+            name = None
+            parent = None
+            if isinstance(item, (list, tuple)):
+                name = item[0]
+                if len(item) > 1:
+                    parent = item[1]
+            if not name:
+                continue
+            class_groups[classify_group_by_base(parent)].append((name, parent))
         for group, class_list in class_groups.items():
-            output.write(f"package \"{group}\" <<{group}>> {{\n")
-            for cls, parent, attributes, methods in class_list:
-                output.write(f"  class {cls} extends {parent} {{\n")
-                for attr_type, attr_name in attributes:
-                    output.write(f"    {attr_type} {attr_name}\n")
-                for return_type, method_name, params in methods:
-                    output.write(f"    {return_type} {method_name}({params})\n")
-                output.write("  }\n")
-            output.write("}\n")
+            f.write(f'package "{group}" <<UnrealGroup>> {{\n')
+            for item in class_list:
+                name = item[0]
+                parent = item[1]
+                stereotype = 'UnrealClass'
+                f.write(f'  class {name} <<{stereotype}>> {{\n')
+                # (Opcional: atributos e métodos)
+                f.write('  }\n')
+            f.write('}\n')
 
-        for frm, to in relations:
-            output.write(f"{frm} --> {to} : uses\n")
+        f.write("@enduml\n")
 
-        output.write("@enduml\n")
+    # Ao final do for, gerar entidades.txt se caminho fornecido
+    if entidades_txt_path is not None:
+        try:
+            with open(entidades_txt_path, "w", encoding="utf-8") as ef:
+                for entidade in sorted(entidades_coletadas):
+                    ef.write(entidade + "\n")
+            print(f"[DEBUG] Arquivo de entidades atualizado: {entidades_txt_path}")
+        except Exception as e:
+            print(f"[ERRO] Falha ao gerar entidades.txt: {e}")
 
     return output_file
 
@@ -231,133 +419,79 @@ def render_svg(puml_path):
     except subprocess.CalledProcessError as e:
         return None
 
-class UMLRunnerApp(ctk.CTk):
-    def __init__(self):
-        super().__init__()
-        self.title("UnrealUML - Full Execution")
-        self.geometry("720x480")
-
-        self.output_box = ctk.CTkTextbox(self, width=680, height=380, wrap="word")
-        self.output_box.pack(padx=20, pady=(20, 10), expand=True, fill="both")
-
-        self.run_button = ctk.CTkButton(self, text="Run All", command=self.run_all)
-        self.run_button.pack(pady=(0, 10))
-
-    def log(self, text):
-        self.output_box.insert("end", text + "\n")
-        self.output_box.see("end")
-
-    def check_java_version(self):
-        try:
-            result = subprocess.run(["java", "-version"], capture_output=True, text=True)
-            output = result.stderr if result.stderr else result.stdout
-            version_match = re.search(r'version "(.*?)"', output)
-            if version_match:
-                version_str = version_match.group(1)
-                major = int(version_str.split(".")[0]) if version_str.startswith("1.") else int(version_str.split(".")[0])
-                self.log(f"Java detected: {version_str}")
-                if major < 17:
-                    self.log("Incompatible Java version (< 17). Opening link to install JDK 17...")
-                    webbrowser.open("https://download.oracle.com/java/17/archive/jdk-17.0.12_windows-x64_bin.msi")
-                    return False
-                return True
-            else:
-                self.log("Could not detect Java version.")
-                return False
-        except FileNotFoundError:
-            self.log("Java is not installed. Opening link to install JDK 17...")
-            webbrowser.open("https://download.oracle.com/java/17/archive/jdk-17.0.12_windows-x64_bin.msi")
-            return False
-
-    def run_all(self):
-        self.run_button.configure(state="disabled")
-        self.output_box.delete("1.0", "end")
-
-        def _run_all_logic():
-            self.log("Starting full process...")
-            if not self.check_java_version():
-                self.log("Install JDK 17.0.12 before proceeding.")
-                self.run_button.configure(state="normal")
-                return
-
-            self.log("\n1. Generating raw PUML...")
-            try:
-                source_path = os.path.join(os.getcwd(), "Source")
-                if not os.path.exists(source_path):
-                    self.log("Source folder not found.")
-                    self.run_button.configure(state="normal")
-                    return
-                puml_file = generate_puml(source_path)
-                self.log(f"PUML generated: {puml_file}")
-            except Exception as e:
-                self.log(f"Error generating PUML: {e}")
-                self.run_button.configure(state="normal")
-                return
-
-            self.log("\n2. Cleaning PUML...")
-            try:
-                cleaned = clean_puml(puml_file)
-                self.log(f"PUML cleaned: {cleaned}")
-            except Exception as e:
-                self.log(f"Error cleaning PUML: {e}")
-                self.run_button.configure(state="normal")
-                return
-
-            self.log("\n3. Rendering SVG...")
-            try:
-                svg = render_svg(cleaned)
-                if svg:
-                    self.log(f"SVG generated and opened: {svg}")
-                else:
-                    self.log("Error: SVG not generated.")
-            except Exception as e:
-                self.log(f"Error rendering SVG: {e}")
-
-            self.log("\nProcess completed successfully.")
-            self.run_button.configure(state="normal")
-
-        threading.Thread(target=_run_all_logic, daemon=True).start()
+def validate_puml_coverage(puml_path, expected_entities):
+    """
+    Ajustada: Agora valida se o nome da entidade está presente no PUML,
+    e também verifica se há métodos/atributos dentro da definição.
+    Se a entidade existir mas estiver vazia, reporta como 'sem propriedades/metodos'.
+    """
+    presentes = []
+    ausentes = []
+    sem_propriedades = []
+    with open(puml_path, "r", encoding="utf-8") as f:
+        lines = f.readlines()
+    puml_text = ''.join(lines)
+    for entidade in expected_entities:
+        found = False
+        has_content = False
+        # Procurar struct, class ou enum
+        patterns = [
+            rf'(struct|class) {entidade} <<Unreal(Struct|Class)>> {{',
+            rf'enum {entidade} <<UnrealEnum>> {{'
+        ]
+        for pattern in patterns:
+            for i, line in enumerate(lines):
+                if re.search(pattern, line):
+                    found = True
+                    # Checar se há membros dentro das chaves
+                    j = i + 1
+                    while j < len(lines) and not lines[j].strip().startswith('}'):  # Até fechar bloco
+                        if lines[j].strip() and not lines[j].strip().startswith('//'):
+                            has_content = True
+                            break
+                        j += 1
+                    break
+            if found:
+                break
+        if found and has_content:
+            presentes.append(entidade)
+        elif found:
+            sem_propriedades.append(entidade)
+        else:
+            ausentes.append(entidade)
+    print(f"[VALIDAÇÃO] Entidades presentes no PUML: {presentes}")
+    print(f"[VALIDAÇÃO] Entidades presentes mas SEM propriedades/métodos: {sem_propriedades}")
+    print(f"[VALIDAÇÃO] Entidades AUSENTES no PUML: {ausentes}")
+    return presentes, sem_propriedades, ausentes
 
 if __name__ == "__main__":
-    import sys
-    # Se um argumento for passado, use como root_folder
-    if len(sys.argv) > 1:
-        root_folder = sys.argv[1]
-        # Ajusta working dir para root_folder
-        os.chdir(root_folder)
-        # Executa pipeline headless
-        print(f"[UML] Running in folder: {root_folder}")
-        # 1. Busca .uproject
-        uproject = None
-        for root, dirs, files in os.walk(root_folder):
-            for file in files:
-                if file.endswith(".uproject"):
-                    uproject = os.path.join(root, file)
-                    break
-            if uproject:
-                break
-        if not uproject:
-            print("[UML] .uproject file not found!")
-            sys.exit(1)
-        source_dir = os.path.join(os.path.dirname(uproject), "Source")
-        if not os.path.isdir(source_dir):
-            print("[UML] Source folder not found!")
-            sys.exit(1)
-        try:
-            puml_file = generate_puml(source_dir)
-            print(f"[UML] PUML generated: {puml_file}")
-            cleaned = clean_puml(puml_file)
-            print(f"[UML] PUML cleaned: {cleaned}")
-            svg = render_svg(cleaned)
-            if svg:
-                print(f"[UML] SVG generated: {svg}")
-            else:
-                print("[UML] SVG not generated!")
-                sys.exit(1)
-        except Exception as e:
-            print(f"[UML] Error: {e}")
-            sys.exit(1)
-        sys.exit(0)
-    else:
-        app = UMLRunnerApp()
-        app.mainloop()
+    parser = argparse.ArgumentParser(description="Gera UML para projetos Unreal Engine C++")
+    parser.add_argument('--project', type=str, required=True, help='Pasta do projeto Unreal')
+    parser.add_argument('--tipo', type=str, default='cpp4ue', help='Tipo de projeto (cpp4ue)')
+    parser.add_argument('--valida', type=str, default=None, help='Arquivo .txt com nomes de entidades esperadas para validação')
+    parser.add_argument('--entidades_txt', type=str, default=None, help='Caminho para gerar entidades.txt')
+    args = parser.parse_args()
+
+    project_dir = args.project
+    tipo = args.tipo
+    valida_path = args.valida
+    entidades_txt_path = args.entidades_txt
+
+    print(f"[UML] Gerando UML para C++ Unreal em {project_dir}")
+    print(f"[DEBUG] Procurando arquivos .h em {project_dir}")
+    puml_path = generate_puml(project_dir, entidades_txt_path)
+    print(f"[UML] PUML gerado: {puml_path}")
+    clean_puml(puml_path)
+    print(f"[UML] PUML limpo: {puml_path}")
+
+    # --- Validação automática, se arquivo passado ---
+    if valida_path:
+        with open(valida_path, 'r', encoding='utf-8') as f:
+            expected_entities = [l.strip() for l in f if l.strip()]
+        presentes, sem_propriedades, ausentes = validate_puml_coverage(puml_path, expected_entities)
+        print(f"[VALIDAÇÃO] Entidades presentes no PUML: {presentes}")
+        print(f"[VALIDAÇÃO] Entidades presentes mas SEM propriedades/métodos: {sem_propriedades}")
+        print(f"[VALIDAÇÃO] Entidades AUSENTES no PUML: {ausentes}")
+
+    render_svg(puml_path)
+    print("[UML] Finalizado!")
