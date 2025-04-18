@@ -24,7 +24,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.tipo == "cpp4ue":
-        from CPPForUnrealEngine import generate_puml as gen_cpp4ue
+        from CPPForUnrealEngine import main as gen_cpp4ue
         print(f"[UML] Gerando UML para C++ Unreal em {args.project}")
         try:
             gen_cpp4ue(args.project)
