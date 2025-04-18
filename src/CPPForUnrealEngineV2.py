@@ -344,6 +344,7 @@ def generate_puml_from_json(uml_json, project_dir=None):
     import collections
     def get_prefix(name):
         return name[0] if name and name[0].isalpha() else '_'
+    package_names = []
     for st in stereotypes:
         items_by_prefix = collections.defaultdict(list)
         for item in all_items:
@@ -353,7 +354,9 @@ def generate_puml_from_json(uml_json, project_dir=None):
         if not items_by_prefix:
             continue
         for prefix, items in sorted(items_by_prefix.items()):
-            puml.append(f"package \"{st}s - {prefix}*\" <<Rectangle>> {{")
+            pkg_name = f"{st}s_{prefix}"  # Nome único para package
+            package_names.append(pkg_name)
+            puml.append(f"package \"{st}s - {prefix}*\" as {pkg_name} <<Rectangle>> {{")
             for item in items:
                 kind = 'struct' if st.lower() == 'struct' else ('interface' if st.lower() == 'interface' else ('enum' if st.lower() == 'enum' else 'class'))
                 stereotype_tag = f"<<{st}>>"
@@ -362,7 +365,6 @@ def generate_puml_from_json(uml_json, project_dir=None):
                     puml.append(f"    {f}")
                 for m in item['methods']:
                     puml.append(f"    {m}")
-                # Adiciona referências externas, se houver
                 refs = class_to_external_refs.get(item['name'])
                 if refs:
                     puml.append("    --")
@@ -373,7 +375,8 @@ def generate_puml_from_json(uml_json, project_dir=None):
     # 6. Agrupar Others (sem relação)
     others = [item for item in all_items if item['name'] not in related_names]
     if others:
-        puml.append('package "Others" <<Rectangle>> {')
+        package_names.append('Others')
+        puml.append('package "Others" as Others <<Rectangle>> {')
         for item in others:
             kind = 'struct' if item['stereotype'].lower() == 'struct' else ('interface' if item['stereotype'].lower() == 'interface' else ('enum' if item['stereotype'].lower() == 'enum' else 'class'))
             stereotype_tag = f"<<{item['stereotype']}>>"
@@ -385,6 +388,9 @@ def generate_puml_from_json(uml_json, project_dir=None):
             puml.append("  }")
         puml.append('}')
         puml.append("")
+    # 7. Links invisíveis para forçar alinhamento vertical dos packages
+    for i in range(len(package_names) - 1):
+        puml.append(f"{package_names[i]} --[hidden]--> {package_names[i+1]}")
     # 8. Relações (setas coloridas customizadas, rótulo destacado)
     puml.append("' --- Relações ---")
     arrow_colors = {
@@ -395,8 +401,7 @@ def generate_puml_from_json(uml_json, project_dir=None):
     for src, tgt, arrow, label in relations:
         if tgt in only_referenced:
             continue  # Não desenha seta para referência externa
-        color = arrow_colors.get(arrow, '#FF4500')
-        puml.append(f"{src} {arrow} {tgt} : <b><size:16><color:{color}>{label}</color></size></b>")
+        puml.append(f"{src} {arrow} {tgt} : <b><size:16>{label}</size></b>")
     puml.append("\n@enduml")
     return '\n'.join(puml)
 
