@@ -1,66 +1,81 @@
-# 🦩 Uuml – UML Generator for Unreal Engine
+# 🦩 Uuml – Universal UML Diagram Generator
 
-## 📘 English Version
+## Overview
 
-**Uuml** is a cross-platform visual application written in Python with a modern `customtkinter` GUI, designed to automatically generate UML diagrams from Unreal Engine C++ source code.
+**Uuml** is a cross-platform, modern visual application to automatically generate beautiful UML class diagrams from source code in multiple languages. With a single interface, you can visualize, document, and understand the architecture of any large project — Unreal Engine, Unity, C++, C#, Python, and more!
 
-## 🟣 Unity C# UML Support (NEW!)
+---
 
-**Now supports Unity3D C# projects:**
-- Detects and parses C# scripts for Unity, including MonoBehaviour, ScriptableObject, and custom classes.
-- Groups classes by package/stereotype with vivid color coding (e.g., <<MonoBehaviour>>, <<ScriptableObject>>, <<Other>>).
-- Displays all class methods and properties directly inside each class box.
-- All text inside class boxes is white for perfect contrast on dark backgrounds.
-- Robust PlantUML output: no duplicate class declarations, no reserved word conflicts, and fully compatible with PlantUML 1.2024+.
-- Modern, visually appealing diagrams with smooth arrows and clear grouping.
+## ✨ Key Features
 
-**How to use for Unity:**
-1. Select your Unity project root in the app.
-2. Choose "C# for Unity" as the language.
-3. Generate and visualize a complete, color-coded UML of your Unity project's architecture!
+- **Multi-language support:**
+  - C++ (generic)
+  - C++ for Unreal Engine (UCLASS/UFUNCTION/UPROPERTY detection)
+  - C# (generic)
+  - C# for Unity (MonoBehaviour, ScriptableObject, custom grouping)
+  - Python
+  - Java (planned)
+  - Easily extensible for more!
+- **Automatic class, method, and property extraction** for all supported languages
+- **Smart grouping:** Classes grouped by package, stereotype, or logical module, with vivid color coding
+- **Modern dark visual style:** White text, colored borders, clear arrows, optimal layout
+- **No duplicate classes, no naming conflicts:** Robust PlantUML output
+- **Real-time logging:** Progress and errors are shown in the interface
+- **One-click export:** Generates `.puml` and `.svg` files, opens the diagram automatically
+- **Modular pipeline:** Easy to add new languages or customize extraction logic
+- **Cross-platform:** Works on Windows, Mac, and Linux
 
-## 🔧 Features
+---
 
-- Unified single-file Python codebase for easy maintenance and build
-- Elegant graphical interface with log preview and real-time feedback
-- Automatically detects the `CodeExamples` folder (containing Unreal Engine C++ header examples)
-- Extracts:
-  - **Classes** (`UCLASS`)
-  - **Methods** (`UFUNCTION`)
-  - **Attributes** (`UPROPERTY`)
-- Detects Unreal project name and engine version from `.uproject`
-- Generates `.puml` grouped by class type:
-  - `GameModes`, `Characters`, `Controllers`, `Components`, `Actors`, etc.
-- Identifies and draws class dependencies based on used attributes
-- Cleans up irrelevant lines (e.g., getters, `const override`, macro-only lines)
-- Applies a unique **color per package** for better visual separation
-- Generates final **SVG diagram** and opens it in the browser
+## 🌍 Supported Languages & Features
 
-## 🌈 Visual Style (PlantUML)
+| Language               | Grouping/Color | Methods & Props | Special Features                      |
+|-----------------------|:--------------:|:---------------:|---------------------------------------|
+| C++                   |      ✔️        |       ✔️        |                                       |
+| C++ for Unreal Engine |      ✔️        |       ✔️        | UCLASS/UFUNCTION/UPROPERTY detection  |
+| C#                    |      ✔️        |       ✔️        |                                       |
+| C# for Unity          |      ✔️        |       ✔️        | MonoBehaviour/ScriptableObject groups |
+| Python                |                |                 |                                       |
+| Java                  |                |                 |                                       |
+| Blueprint for Unreal Engine |           |                 |                                       |
 
-- Dark theme (`#1e1e1e`) with white fonts and vivid package borders
-- Direction: `left to right`
-- Layout: `smetana` (optimal positioning)
-- Each package has its own color:
-  - `Actors`: blue
-  - `Characters`: orange
-  - `Controllers`: teal
-  - `GameModes`: purple
-  - `Components`: cyan
-  - `HUD`: green
-  - etc...
-- Smooth arrows, spacing, and organized layout
+---
+
+## 🎨 Visual Style
+
+- Dark background, white fonts, vivid package/class colors
+- Smooth arrows, optimal spacing, and clear grouping
+- All text inside class boxes is white for maximum contrast
+
+---
 
 ## 🚀 How to Use
 
-1. Make sure you have **Java 17+** installed.
-2. Go to the `src` folder. All code, the executable, icon, and `plantuml.jar` are there.
-3. Run `UumlCentralApp.py` (or the compiled `.exe`).
-4. **A modern interface will open, allowing you to choose the project root and select the target language for UML generation.**
-   - The app will attempt to auto-detect the language (C#, Java, C++, C++ for Unreal, C# for Unity, Python, etc.).
-   - If not detected, you can select manually.
-5. After selecting the language, the app will recursively scan the chosen root folder and generate the `.puml` and `.svg` files using the respective script for that language.
-6. The final SVG will open automatically.
+1. Install **Java 17+** (required for PlantUML rendering)
+2. Download or clone this repository
+3. Go to the `src` folder
+4. Run `UumlCentralApp.py` (or the compiled `.exe`)
+5. Select your project root and target language
+6. Click "Generate" — your UML diagram appears in seconds!
+
+---
+
+## 🏗️ Project Structure
+
+```
+/Uuml
+  /src
+    UumlCentralApp.py
+    CSharpForUnity.py
+    CPPForUnrealEngine.py
+    # ...other language modules
+    plantuml.jar
+    unrealuml_icon.ico
+  /CodeExamples
+  README.md, LICENSE, etc.
+```
+
+---
 
 ## ⚙️ Requirements
 
@@ -72,82 +87,45 @@
 
 > If Java is missing or outdated, the tool will guide you to install JDK 17.0.12.
 
-## 📁 Project Structure
+---
+
+## 🛠️ Building a Standalone Executable
+
+To create a standalone executable (Windows example):
 
 ```
-/UnrealUML
-  /src
-    UumlCentralApp.py
-    CPPForUnrealEngine.py
-    # (future) CSharpDotNet.py, Java.py, etc.
-    unrealuml_icon.ico
-    plantuml.jar
-  /CodeExamples
-    (all .h files for testing)
-  README.md, LICENSE, etc.
+pip install pyinstaller
+cd src
+pyinstaller --onefile --noconsole --icon=unrealuml_icon.ico UumlCentralApp.py
 ```
+- The executable will be in `dist/UumlCentralApp.exe`.
+- You must include `plantuml.jar` in the same folder as the executable.
+
+---
 
 ## 📝 Notes
 
-- All Python and executable files are now inside the `src` directory for better organization.
-- **The application now features a language selection interface, supporting multi-language UML generation workflows.**
-- Example Unreal Engine C++ headers for testing are in `CodeExamples`.
+- All scripts and executables are inside `src` for easy organization.
+- Language selection is automatic or manual.
+- Example code for testing is in `CodeExamples`.
 - The project is ready for packaging and distribution as a single .exe with a custom icon.
 
 ---
 
-## 📗 Versão em Português
+## 👤 Author & Credits
 
-**Uuml** é uma aplicação visual moderna feita em Python com `customtkinter`, que gera automaticamente diagramas UML a partir de projetos Unreal Engine em C++ ou outros stacks suportados.
+Developed by **Robson Franco Maciel** and contributors.
 
-## 🔧 Funcionalidades
+- **PlantUML**: Diagram rendering powered by [PlantUML](https://plantuml.com/). PlantUML is © Arnaud Roques, used under the [PlantUML License](https://plantuml.com/license).
+- **CustomTkinter**: Modern Python GUI library by Tom Schimansky.
 
-- Interface com botão "Gerar Tudo" e área de log ao vivo.
-- Detecção automática da pasta `CodeExamples`.
-- **Nova tela para seleção de linguagem (C#, Java, C++, C++ for Unreal, C# for Unity, Python, etc), com detecção automática ou escolha manual.**
-- Pipeline modular para fácil expansão para novas linguagens.
-- Extração de:
-  - **Classes** (`UCLASS`)
-  - **Métodos** (`UFUNCTION`)
-  - **Atributos** (`UPROPERTY`)
-- Leitura do nome do projeto e versão do `.uproject`.
-- Agrupamento de classes em pacotes lógicos com **cores distintas**.
-- Identificação de dependências entre classes com base nos atributos.
-- Remoção automática de linhas irrelevantes (e.g., `const`, `ATTRIBUTE_ACCESSORS`, getters/setters).
-- Geração de `SeuProjeto.puml` → limpeza → `SeuProjeto.svg`.
-- Visualização automática do diagrama no navegador.
+---
 
-## 🌈 Estilo Visual
+## 📄 License
 
-- Tema escuro com layout `left to right`, algoritmo `smetana`.
-- Cores por pacote:
-  - `Actors`: azul
-  - `Characters`: laranja
-  - `Controllers`: ciano escuro
-  - `GameModes`: roxo
-  - `Components`: azul claro
-  - `HUD`: verde
-  - etc...
-- Bordas em destaque, fontes claras, setas suaves e espaçamento ideal.
+This project is licensed under the [MIT License](LICENSE).
 
-## 🚀 Como Usar
-
-1. Instale o Java 17+.
-2. Vá para a pasta `src`. Todos os arquivos de código, executável, ícone e `plantuml.jar` estão lá.
-3. Execute `UumlCentralApp.py` (ou o compilado `.exe`).
-4. **Uma interface moderna abrirá, permitindo escolher a raiz do projeto e selecionar a linguagem alvo para geração de UML.**
-   - O app tentará detectar automaticamente a linguagem (C#, Java, C++, C++ for Unreal, C# for Unity, Python, etc.).
-   - Se não detectado, você pode selecionar manualmente.
-5. Após selecionar a linguagem, o app irá escanear recursivamente a pasta raiz escolhida e gerar os arquivos `.puml` e `.svg` usando o script respectivo para aquela linguagem.
-6. O diagrama final abrirá automaticamente.
-
-## 👤 Autor
-
-Desenvolvido por **Robson Franco Maciel** para profissionais de Unreal Engine que precisam visualizar, documentar e entender a arquitetura de grandes projetos de forma clara.
-
-## 📄 Licença
-
-Este projeto está licenciado sob a [Licença MIT](LICENSE).
+---
 
 ## 🖼️ Logo
 
@@ -155,4 +133,4 @@ Este projeto está licenciado sob a [Licença MIT](LICENSE).
 
 ---
 
-**Uuml** nasceu para facilitar a leitura estrutural de grandes projetos Unreal. Ideal para documentação, times distribuídos, onboarding técnico e engenharia reversa visual.
+**Uuml** is ideal for documentation, onboarding, distributed teams, and visual reverse engineering — for any codebase!
